@@ -47,6 +47,7 @@ builder.Services.AddSingleton<WireGuardService>();
 builder.Services.AddSingleton<MacroService>();
 builder.Services.AddSingleton<ScreenService>();
 builder.Services.AddSingleton<GamepadService>();
+builder.Services.AddSingleton<MonitorService>();
 
 
 
@@ -340,6 +341,73 @@ app.MapGet("/api/wg/status", (WireGuardService wg) =>
 app.MapPost("/api/wg/toggle", (WireGuardService wg) =>
     Results.Json(new { Success = true, Status = wg.Toggle() }));
 
+// ==================== MONITOR (ControlMyMonitor / DDC/CI) ====================
+var monitorName = builder.Configuration.GetValue<string>("Monitor:Name") ?? "Primary";
+
+app.MapGet("/api/monitor/state", (MonitorService mon) =>
+{
+    if (!mon.IsAvailable())
+        return Results.Json(new { success = true, available = false });
+
+    var (name, brightnessMax) = mon.GetMonitorInfo(monitorName);
+    var brightness = mon.GetValue(monitorName, "10");
+    var powerMode = mon.GetValue(monitorName, "D6");
+
+    return Results.Json(new
+    {
+        success = true,
+        available = true,
+        monitor = name ?? monitorName,
+        brightness,
+        brightnessMax = brightnessMax ?? 100,
+        powerMode,
+        // VESA VCP: 1 = on, 4 = standby, 5 = suspend
+        powerOn = powerMode == 1,
+        powerKnown = powerMode is 1 or 4 or 5
+    });
+});
+
+app.MapPost("/api/monitor/brightness", async (HttpRequest req, MonitorService mon) =>
+{
+    if (!mon.IsAvailable())
+        return Results.Json(new { success = false, error = "ControlMyMonitor.exe not found" });
+
+    var body = await req.ReadFromJsonAsync<MonitorBrightnessRequest>();
+    var level = Math.Clamp(body?.Level ?? 0, 0, 100);
+
+    var ok = mon.SetValue(monitorName, "10", level);
+    var brightness = mon.GetValue(monitorName, "10");
+
+    return Results.Json(new { success = ok, brightness, requested = level });
+});
+
+app.MapPost("/api/monitor/power", async (HttpRequest req, MonitorService mon) =>
+{
+    if (!mon.IsAvailable())
+        return Results.Json(new { success = false, error = "ControlMyMonitor.exe not found" });
+
+    var body = await req.ReadFromJsonAsync<MonitorPowerRequest>();
+    var action = body?.Action?.ToLowerInvariant() ?? "";
+
+    bool ok = action switch
+    {
+        "on" => mon.TurnOn(monitorName),
+        "off" => mon.TurnOff(monitorName),
+        "toggle" => mon.SwitchOffOn(monitorName),
+        _ => false
+    };
+
+    var powerMode = mon.GetValue(monitorName, "D6");
+
+    return Results.Json(new
+    {
+        success = ok,
+        powerMode,
+        powerOn = powerMode == 1,
+        powerKnown = powerMode is 1 or 4 or 5
+    });
+});
+
 // ==================== MACROS ====================
 app.MapGet("/api/macros", (MacroService macros) =>
     Results.Json(new { Success = true, Macros = macros.GetAll() }));
@@ -503,4 +571,6 @@ record DeviceRequest(string Name);
 record ZoomRequest(string Action, float? Level = null);
 record PanRequest(float X, float Y, bool Absolute = false);
 record FpsRequest(int Fps, int? IdleFps = null);
+record MonitorBrightnessRequest(int Level, string? Monitor = null);
+record MonitorPowerRequest(string Action, string? Monitor = null);
 file record GamepadMsg(string t, float x = 0, float y = 0);

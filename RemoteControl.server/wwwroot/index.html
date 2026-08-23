@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -210,13 +210,53 @@
             outline: 0
         }
 
-            .volume-slider::-webkit-slider-thumb {
-                -webkit-appearance: none;
-                width: 26px;
-                height: 26px;
-                background: #fff;
-                border-radius: 50%;
-                box-shadow: 0 2px 6px rgba(0,0,0,.3)
+        .volume-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 26px;
+            height: 26px;
+            background: #fff;
+            border-radius: 50%;
+            box-shadow: 0 2px 6px rgba(0,0,0,.3)
+        }
+
+        .monitor-name {
+            color: #888;
+            font-size: .75em;
+            font-weight: 400;
+            text-transform: none;
+            letter-spacing: 0;
+            word-break: break-all
+        }
+
+        .monitor-input-row {
+            display: flex;
+            gap: 6px;
+            margin-bottom: 10px
+        }
+
+            .monitor-input-row .keyboard-input {
+                flex: 1
+            }
+
+        .monitor-warning {
+            background: rgba(230,126,34,.12);
+            border: 1px solid rgba(230,126,34,.4);
+            color: #e67e22;
+            border-radius: 8px;
+            padding: 8px 10px;
+            font-size: .8em;
+            line-height: 1.4;
+            margin-bottom: 10px
+        }
+
+        .monitor-status {
+            margin-top: 10px;
+            font-size: .8em;
+            color: #888
+        }
+
+            .monitor-status.on {
+                color: #00ff88
             }
 
         .device-select {
@@ -914,6 +954,7 @@
 
         <div class="tabs">
             <button class="tab active" data-tab="main">Main</button>
+            <button class="tab" data-tab="monitor">Monitor</button>
             <button class="tab" data-tab="mouse">Mouse</button>
             <button class="tab" data-tab="keys">Keys</button>
             <button class="tab" data-tab="stream">Stream</button>
@@ -960,6 +1001,36 @@
             <div class="section">
                 <h2>WireGuard</h2>
                 <button class="btn btn-primary btn-wide" onclick="toggleWireGuard()">Toggle VPN</button>
+            </div>
+        </div>
+
+        <!-- MONITOR -->
+        <div id="tab-monitor" class="content">
+            <div class="section">
+                <h2>Monitor <span class="monitor-name" id="mon-name"></span></h2>
+
+                <div id="mon-unavailable" class="monitor-warning" style="display:none">
+                    ControlMyMonitor.exe not found.<br>
+                    Положи exe рядом с сервером или укажи путь в appsettings: <b>Monitor:CmmPath</b>
+                </div>
+
+                <div class="volume-row">
+                    <span class="volume-value" id="mon-brightness-val">--</span>
+                    <input type="range" min="0" max="100" value="50" step="1" class="volume-slider" id="mon-brightness-slider">
+                </div>
+
+                <div class="monitor-input-row">
+                    <input type="number" class="keyboard-input" id="mon-brightness-input" min="0" max="100" step="1" placeholder="0-100" inputmode="numeric">
+                    <button class="btn btn-primary" onclick="applyMonitorBrightness()">Apply</button>
+                </div>
+
+                <div class="buttons">
+                    <button class="btn btn-success btn-wide" onclick="monPower('on')">On</button>
+                    <button class="btn btn-danger btn-wide" onclick="monPower('off')">Off</button>
+                    <button class="btn btn-dark btn-wide" onclick="monPower('toggle')">Switch</button>
+                </div>
+
+                <div class="monitor-status" id="mon-power">Power: --</div>
             </div>
         </div>
 
@@ -1415,6 +1486,8 @@
 
             if (currentTab === 'game' && t.dataset.tab !== 'game') gpDisconnect();
             if (t.dataset.tab === 'game') gpConnect();
+
+            if (t.dataset.tab === 'monitor') updateMonitor();
 
             currentTab = t.dataset.tab;
         });
@@ -2813,6 +2886,71 @@
             cam.addEventListener('pointerup', up);
             cam.addEventListener('pointercancel', up);
         })();
+
+        // ==================== MONITOR (ControlMyMonitor / DDC/CI) ====================
+        let monTimeout;
+
+        function setMonitorBrightnessUI(v, max) {
+            max = max || 100;
+            const s = $('#mon-brightness-slider');
+            s.max = max;
+            s.value = v;
+            s.style.setProperty('--val', Math.min(100, v / max * 100) + '%');
+            $('#mon-brightness-val').textContent = v + '%';
+        }
+
+        async function updateMonitor() {
+            const d = await apiS('GET', '/api/monitor/state');
+            if (!d) return;
+            $('#mon-unavailable').style.display = d.available ? 'none' : 'block';
+            if (d.monitor) $('#mon-name').textContent = d.monitor;
+
+            if (d.brightness != null) {
+                setMonitorBrightnessUI(d.brightness, d.brightnessMax);
+                $('#mon-brightness-input').value = d.brightness;
+            }
+
+            const st = $('#mon-power');
+            if (d.powerKnown) {
+                st.textContent = d.powerOn ? 'Power: on' : 'Power: off (standby)';
+                st.classList.toggle('on', d.powerOn);
+            } else if (d.available) {
+                st.textContent = 'Power: --';
+                st.classList.remove('on');
+            }
+        }
+
+        $('#mon-brightness-slider').oninput = function () {
+            const v = parseInt(this.value);
+            const max = parseInt(this.max) || 100;
+            $('#mon-brightness-val').textContent = v + '%';
+            $('#mon-brightness-input').value = v;
+            this.style.setProperty('--val', Math.min(100, v / max * 100) + '%');
+            clearTimeout(monTimeout);
+            monTimeout = setTimeout(() => apiS('POST', '/api/monitor/brightness', { level: v }), 150);
+        };
+
+        async function applyMonitorBrightness() {
+            const inp = $('#mon-brightness-input');
+            let v = parseInt(inp.value);
+            if (isNaN(v)) return;
+            const max = parseInt($('#mon-brightness-slider').max) || 100;
+            v = Math.max(0, Math.min(max, v));
+            inp.value = v;
+            setMonitorBrightnessUI(v, max);
+            const d = await apiS('POST', '/api/monitor/brightness', { level: v });
+            if (d && d.brightness != null) setMonitorBrightnessUI(d.brightness, max);
+        }
+
+        $('#mon-brightness-input').addEventListener('keydown', e => {
+            if (e.key === 'Enter') applyMonitorBrightness();
+        });
+
+        async function monPower(action) {
+            toast(action === 'on' ? 'Turning on...' : action === 'off' ? 'Turning off...' : 'Switching...');
+            await api('POST', '/api/monitor/power', { action }, true);
+            setTimeout(updateMonitor, 800);
+        }
 
         // ==================== INIT ====================
         loadGameSettings();
