@@ -65,8 +65,8 @@ await BootModeGuardAsync(app.Services);
 
 static async Task BootModeGuardAsync(IServiceProvider sp)
 {
-    // ВАЖНО: чтобы не логоффало всех пользователей подряд, ограничь проверку только автологон-юзером
-    const string AutoLogonUser = "YOUR_AUTOLOGON_USER"; // <-- поменяй
+    // Р’РђР–РќРћ: С‡С‚РѕР±С‹ РЅРµ Р»РѕРіРѕС„С„Р°Р»Рѕ РІСЃРµС… РїРѕР»СЊР·РѕРІР°С‚РµР»РµР№ РїРѕРґСЂСЏРґ, РѕРіСЂР°РЅРёС‡СЊ РїСЂРѕРІРµСЂРєСѓ С‚РѕР»СЊРєРѕ Р°РІС‚РѕР»РѕРіРѕРЅ-СЋР·РµСЂРѕРј
+    const string AutoLogonUser = "YOUR_AUTOLOGON_USER"; // <-- РїРѕРјРµРЅСЏР№
     if (!string.Equals(Environment.UserName, AutoLogonUser, StringComparison.OrdinalIgnoreCase))
         return;
 
@@ -80,14 +80,14 @@ static async Task BootModeGuardAsync(IServiceProvider sp)
     }
     catch
     {
-        // fail-open, чтобы не кирпичить систему если роутер недоступен
+        // fail-open, С‡С‚РѕР±С‹ РЅРµ РєРёСЂРїРёС‡РёС‚СЊ СЃРёСЃС‚РµРјСѓ РµСЃР»Рё СЂРѕСѓС‚РµСЂ РЅРµРґРѕСЃС‚СѓРїРµРЅ
         return;
     }
 
     if (mode.Equals("REMOTE", StringComparison.OrdinalIgnoreCase))
         return;
 
-    // LOCAL: ждём физическую активность мыши N секунд
+    // LOCAL: Р¶РґС‘Рј С„РёР·РёС‡РµСЃРєСѓСЋ Р°РєС‚РёРІРЅРѕСЃС‚СЊ РјС‹С€Рё N СЃРµРєСѓРЅРґ
     var mouse = sp.GetRequiredService<RemoteControl.Server.Services.MouseService>();
 
     var start = mouse.GetPosition();
@@ -99,10 +99,10 @@ static async Task BootModeGuardAsync(IServiceProvider sp)
         var cur = mouse.GetPosition();
 
         if (Math.Abs(cur.X - start.X) > 5 || Math.Abs(cur.Y - start.Y) > 5)
-            return; // мышь шевельнули — значит локальный вход руками, не логоффаем
+            return; // РјС‹С€СЊ С€РµРІРµР»СЊРЅСѓР»Рё вЂ” Р·РЅР°С‡РёС‚ Р»РѕРєР°Р»СЊРЅС‹Р№ РІС…РѕРґ СЂСѓРєР°РјРё, РЅРµ Р»РѕРіРѕС„С„Р°РµРј
     }
 
-    // никого нет — выкидываем
+    // РЅРёРєРѕРіРѕ РЅРµС‚ вЂ” РІС‹РєРёРґС‹РІР°РµРј
     try
     {
         System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
