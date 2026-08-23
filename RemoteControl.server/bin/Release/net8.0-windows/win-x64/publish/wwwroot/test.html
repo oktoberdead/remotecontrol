@@ -1,0 +1,81 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>API Test</title>
+    <style>
+        body {
+            font-family: monospace;
+            background: #1a1a2e;
+            color: #0f0;
+            padding: 20px;
+        }
+
+        pre {
+            background: #000;
+            padding: 10px;
+            margin: 10px 0;
+            white-space: pre-wrap;
+        }
+
+        button {
+            padding: 10px 20px;
+            margin: 5px;
+            cursor: pointer;
+        }
+
+        .error {
+            color: #f00;
+        }
+
+        .ok {
+            color: #0f0;
+        }
+    </style>
+</head>
+<body>
+    <h1>API Diagnostic</h1>
+    <button onclick="testAll()">Test All APIs</button>
+    <button onclick="location.reload()">Refresh</button>
+    <div id="results"></div>
+
+    <script>
+        const results = document.getElementById('results');
+
+        async function testApi(name, url) {
+            const div = document.createElement('div');
+            div.innerHTML = `<h3>${name}</h3><pre>Loading...</pre>`;
+            results.appendChild(div);
+            const pre = div.querySelector('pre');
+
+            try {
+                const start = Date.now();
+                const res = await fetch(url);
+                const text = await res.text();
+                const time = Date.now() - start;
+
+                let json;
+                try { json = JSON.parse(text); } catch { json = null; }
+
+                pre.className = res.ok ? 'ok' : 'error';
+                pre.textContent = `Status: ${res.status} (${time}ms)\n\nRaw:\n${text}\n\nParsed:\n${json ? JSON.stringify(json, null, 2) : '(not JSON)'}`;
+            } catch (e) {
+                pre.className = 'error';
+                pre.textContent = `ERROR: ${e.message}`;
+            }
+        }
+
+        async function testAll() {
+            results.innerHTML = '';
+            await testApi('Volume', '/api/volume');
+            await testApi('WireGuard', '/api/wg/status');
+            await testApi('Layout', '/api/keyboard/layout');
+            await testApi('Audio Devices', '/api/audio/devices');
+            await testApi('Debug', '/api/debug');
+            await testApi('System Info', '/api/system/info');
+        }
+
+        testAll();
+    </script>
+</body>
+</html>

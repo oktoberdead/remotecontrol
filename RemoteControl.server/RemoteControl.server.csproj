@@ -1,0 +1,37 @@
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
+
+	<PropertyGroup>
+		<TargetFramework>net8.0-windows</TargetFramework>
+		<UseWindowsForms>true</UseWindowsForms>
+
+		<Nullable>enable</Nullable>
+		<ImplicitUsings>enable</ImplicitUsings>
+
+		<!-- Названия можно поменять как хочешь -->
+		<AssemblyName>RemoteControl.Server</AssemblyName>
+		<RootNamespace>RemoteControl.Server</RootNamespace>
+
+		<!-- Чтобы статика/контент корректно жила рядом с exe -->
+		<GenerateDocumentationFile>false</GenerateDocumentationFile>
+	</PropertyGroup>
+
+	<!-- В Debug пусть будет консоль (удобно), в Release — без окна -->
+	<PropertyGroup Condition="'$(Configuration)'=='Debug'">
+		<OutputType>Exe</OutputType>
+	</PropertyGroup>
+
+	<PropertyGroup Condition="'$(Configuration)'=='Release'">
+		<OutputType>WinExe</OutputType>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<!-- Аудио -->
+		<PackageReference Include="NAudio" Version="2.2.1" />
+		<PackageReference Include="Nefarius.ViGEm.Client" Version="1.21.256" />
+
+		<!-- Если ты используешь ServiceController (а не PS-обёртку) -->
+		<PackageReference Include="System.ServiceProcess.ServiceController" Version="8.0.0" />
+	</ItemGroup>
+
+
+</Project>
