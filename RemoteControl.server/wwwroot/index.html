@@ -19,206 +19,20 @@
 
         <div class="tabs" id="tab-bar"></div>
 
-        <!-- MAIN -->
-        <div id="tab-main" class="content active">
-            <div class="section">
-                <h2>Volume</h2>
-                <div class="volume-row">
-                    <span class="volume-value" id="vol-value">--%</span>
-                    <input type="range" min="0" max="100" value="50" class="volume-slider" id="vol-slider">
-                </div>
-                <div class="buttons">
-                    <button class="btn btn-dark btn-icon" onclick="volAction('mute')">🔇</button>
-                    <button class="btn btn-dark btn-icon" onclick="volAction('down')">🔉</button>
-                    <button class="btn btn-dark btn-icon" onclick="volAction('up')">🔊</button>
-                </div>
-                <select class="device-select" id="audio-device"></select>
-            </div>
 
-            <div class="section">
-                <h2>Media</h2>
-                <div class="buttons">
-                    <button class="btn btn-dark btn-icon" onclick="api('POST','/api/key/left')" title="Перемотка назад">⏪</button>
-                    <button class="btn btn-dark btn-icon" onclick="api('POST','/api/key/prev')">⏮</button>
-                    <button class="btn btn-primary btn-icon" onclick="api('POST','/api/key/playpause')">⏯</button>
-                    <button class="btn btn-dark btn-icon" onclick="api('POST','/api/key/next')">⏭</button>
-                    <button class="btn btn-dark btn-icon" onclick="api('POST','/api/key/right')" title="Перемотка вперёд">⏩</button>
-                    <button class="btn btn-dark btn-icon" onclick="api('POST','/api/key/stop')">⏹</button>
-                </div>
-            </div>
-
-            <div class="section">
-                <h2>System</h2>
-                <div class="buttons">
-                    <button class="btn btn-warning" onclick="api('POST','/api/combo',{keys:['win','d']})">Desktop</button>
-                    <button class="btn btn-warning" onclick="api('POST','/api/combo',{keys:['alt','tab']})">Alt+Tab</button>
-                    <button class="btn btn-danger" onclick="api('POST','/api/combo',{keys:['alt','f4']})">Alt+F4</button>
-                    <button class="btn btn-dark" onclick="api('POST','/api/key/f11')">F11</button>
-                </div>
-                <div class="buttons" style="margin-top:8px">
-                    <button class="btn btn-danger btn-wide" id="btn-shutdown" onclick="openShutdownPrompt()">⏻ Shutdown PC</button>
-                    <button class="btn btn-dark btn-wide" id="btn-cancel-shutdown" onclick="cancelScheduledShutdown()" style="display:none">⏹ Cancel</button>
-                </div>
-            </div>
-
-            <div class="section">
-                <h2>WireGuard</h2>
-                <button class="btn btn-primary btn-wide" onclick="toggleWireGuard()">Toggle VPN</button>
-            </div>
-
-            <div class="custom-area" id="custom-area-main"></div>
-        </div>
-
-        <!-- MONITOR -->
-        <div id="tab-monitor" class="content">
-            <div class="section">
-                <h2>Monitor <span class="monitor-name" id="mon-name"></span></h2>
-
-                <div id="mon-unavailable" class="monitor-warning" style="display:none">
-                    ControlMyMonitor.exe not found.<br>
-                    Положи exe рядом с сервером или укажи путь в appsettings: <b>Monitor:CmmPath</b>
-                </div>
-
-                <div class="volume-row">
-                    <span class="volume-value" id="mon-brightness-val">--</span>
-                    <input type="range" min="0" max="100" value="50" step="1" class="volume-slider" id="mon-brightness-slider">
-                </div>
-
-                <div class="monitor-input-row">
-                    <input type="number" class="keyboard-input" id="mon-brightness-input" min="0" max="100" step="1" placeholder="0-100" inputmode="numeric">
-                    <button class="btn btn-primary" onclick="applyMonitorBrightness()">Apply</button>
-                </div>
-
-                <div class="buttons">
-                    <button class="btn btn-success btn-wide" onclick="monPower('on')">On</button>
-                    <button class="btn btn-danger btn-wide" onclick="monPower('off')">Off</button>
-                    <button class="btn btn-dark btn-wide" onclick="monPower('toggle')">Switch</button>
-                </div>
-
-                <div class="monitor-status" id="mon-power">Power: --</div>
-            </div>
-
-            <!-- НОВЫЙ низкоуровневый путь (dxva2 DDC/CI, /api/monitor2/*).
-                 Старый блок выше не трогаем: если что-то пойдёт не так — рабочий путь остаётся -->
-            <div class="section">
-                <h2>Monitor · Low-level (dxva2 DDC/CI)</h2>
-
-                <div id="mon2-unavailable" class="monitor-warning" style="display:none">
-                    DDC/CI мониторы не найдены (dxva2)
-                </div>
-
-                <select class="device-select" id="mon2-select"></select>
-
-                <div class="volume-row">
-                    <span class="volume-value" id="mon2-brightness-val">--</span>
-                    <input type="range" min="0" max="100" value="50" step="1" class="volume-slider" id="mon2-brightness-slider">
-                </div>
-
-                <div class="monitor-input-row">
-                    <input type="number" class="keyboard-input" id="mon2-brightness-input" min="0" max="100" step="1" placeholder="0-100" inputmode="numeric">
-                    <button class="btn btn-primary" onclick="applyMonitor2Brightness()">Apply</button>
-                </div>
-
-                <div class="buttons">
-                    <button class="btn btn-success btn-wide" onclick="mon2Power('on')">On</button>
-                    <button class="btn btn-danger btn-wide" onclick="mon2Power('off')">Off</button>
-                    <button class="btn btn-dark btn-wide" onclick="mon2Power('toggle')">Switch</button>
-                </div>
-
-                <div class="monitor-status" id="mon2-power">Power: --</div>
-                <div class="mon2-note">Экспериментально: прямой WinAPI, без ControlMyMonitor. Не понравится — блок выпиливается независимо.</div>
-            </div>
-
-            <div class="custom-area" id="custom-area-monitor"></div>
-        </div>
-
-        <!-- MOUSE -->
-        <div id="tab-mouse" class="content">
-            <div class="section" style="flex:1;display:flex;flex-direction:column">
-                <h2>Touchpad</h2>
-                <div class="touchpad" id="touchpad">
-                    <div class="pad-edge-zone"></div>
-                    <div>Drag to move</div>
-                    <div class="touchpad-hint">Tap | DoubleTap | Tap-Hold-Drag</div>
-                    <div class="touchpad-hint">Two fingers = Scroll</div>
-                </div>
-                <div class="mouse-buttons">
-                    <button class="btn btn-primary mouse-btn" data-btn="left">Left</button>
-                    <button class="btn btn-dark mouse-btn" data-btn="middle">Mid</button>
-                    <button class="btn btn-primary mouse-btn" data-btn="right">Right</button>
-                </div>
-            </div>
-
-            <div class="custom-area" id="custom-area-mouse"></div>
-        </div>
-
-        <!-- KEYS -->
-        <div id="tab-keys" class="content">
-            <div class="section">
-                <h2>Live Input (realtime)</h2>
-                <input type="text" class="keyboard-input" id="live-input" placeholder="Type here - sends instantly..." autocomplete="off">
-            </div>
-
-            <div class="section">
-                <h2>Send Text (batch)</h2>
-                <input type="text" class="keyboard-input" id="text-input" placeholder="Type, then press Send..." autocomplete="off">
-                <div class="buttons" style="margin-top:8px">
-                    <button class="btn btn-primary btn-wide" onclick="sendText()">Send</button>
-                    <button class="btn btn-dark" onclick="$('#text-input').value=''">Clear</button>
-                </div>
-            </div>
-
-            <div class="section">
-                <h2>Arrows</h2>
-                <div class="arrows-grid">
-                    <div class="empty"></div>
-                    <button class="btn btn-dark" onclick="api('POST','/api/key/up')">↑</button>
-                    <div class="empty"></div>
-                    <button class="btn btn-dark" onclick="api('POST','/api/key/left')">←</button>
-                    <button class="btn btn-primary" onclick="api('POST','/api/key/enter')">↵</button>
-                    <button class="btn btn-dark" onclick="api('POST','/api/key/right')">→</button>
-                    <div class="empty"></div>
-                    <button class="btn btn-dark" onclick="api('POST','/api/key/down')">↓</button>
-                    <div class="empty"></div>
-                </div>
-            </div>
-
-            <div class="section">
-                <h2>Common</h2>
-                <div class="buttons">
-                    <button class="btn btn-dark" onclick="api('POST','/api/key/space')">Space</button>
-                    <button class="btn btn-dark" onclick="api('POST','/api/key/tab')">Tab</button>
-                    <button class="btn btn-dark" onclick="api('POST','/api/key/esc')">Esc</button>
-                    <button class="btn btn-dark" onclick="api('POST','/api/key/backspace')">⌫</button>
-                    <button class="btn btn-dark" onclick="api('POST','/api/key/delete')">Del</button>
-                </div>
-            </div>
-
-            <div class="section">
-                <h2>Combos</h2>
-                <div class="buttons">
-                    <button class="btn btn-primary" onclick="api('POST','/api/combo',{keys:['ctrl','c']})">^C</button>
-                    <button class="btn btn-primary" onclick="api('POST','/api/combo',{keys:['ctrl','v']})">^V</button>
-                    <button class="btn btn-primary" onclick="api('POST','/api/combo',{keys:['ctrl','z']})">^Z</button>
-                    <button class="btn btn-primary" onclick="api('POST','/api/combo',{keys:['ctrl','a']})">^A</button>
-                    <button class="btn btn-primary" onclick="api('POST','/api/combo',{keys:['ctrl','s']})">^S</button>
-                    <button class="btn btn-warning" onclick="api('POST','/api/combo',{keys:['ctrl','shift','esc']})">TaskMgr</button>
-                </div>
-            </div>
-
-            <div class="custom-area" id="custom-area-keys"></div>
-        </div>
+        <!-- Страницы-вкладки (Main/Monitor/Mouse/Keys/кастомные) рендерятся из конфига -->
+        <div id="pages-root"></div>
 
         <!-- STREAM -->
         <div id="tab-stream" class="content noscroll">
             <div class="stream-wrap">
-                <div class="stream-view" id="stream-view">
+                <div class="stream-view" id="stream-view" data-sblock="view">
                     <canvas id="stream-canvas"></canvas>
                     <div class="stream-overlay" id="stream-overlay">Tap to start</div>
                     <div class="stream-info" id="stream-info"></div>
                 </div>
                 <div class="stream-controls" id="stream-controls">
-                    <div class="stream-settings">
+                    <div class="stream-settings" data-sblock="settings">
                         <div class="fps-control">
                             <span class="fps-label">FPS:</span>
                             <button class="btn btn-dark btn-sm" onclick="setFps(10)">10</button>
@@ -242,14 +56,14 @@
                             <span id="q-display" class="fps-value">100</span>
                         </div>
                     </div>
-                    <div class="touchpad stream-touchpad" id="stream-touchpad"><div class="pad-edge-zone"></div>Touchpad</div>
-                    <div class="mouse-buttons">
+                    <div class="touchpad stream-touchpad" id="stream-touchpad" data-sblock="touchpad"><div class="pad-edge-zone"></div>Touchpad</div>
+                    <div class="mouse-buttons" data-sblock="buttons">
                         <button class="btn btn-primary mouse-btn" data-btn="left">L</button>
                         <button class="btn btn-dark mouse-btn" data-btn="middle">M</button>
                         <button class="btn btn-primary mouse-btn" data-btn="right">R</button>
                     </div>
-                    <input type="text" class="keyboard-input" id="stream-input" placeholder="Type here..." autocomplete="off">
-                    <div class="quick-keys">
+                    <input type="text" class="keyboard-input" id="stream-input" data-sblock="input" placeholder="Type here..." autocomplete="off">
+                    <div class="quick-keys" data-sblock="quickkeys">
                         <button class="btn btn-dark" onclick="api('POST','/api/key/esc')">Esc</button>
                         <button class="btn btn-dark" onclick="api('POST','/api/key/tab')">Tab</button>
                         <button class="btn btn-primary" onclick="api('POST','/api/key/enter')">↵</button>
@@ -281,11 +95,15 @@
 
             <div class="section">
                 <h2>Tabs</h2>
-                <div id="tabs-rows"></div>
+                <div id="tabs-manager"></div>
                 <div class="buttons" style="margin-top:10px">
-                    <button class="btn btn-warning btn-wide" id="btn-edit-game-tab">✏️ Edit Game tab (system layer)</button>
+                    <input type="text" id="tab-new-name" class="keyboard-input" placeholder="New tab name..." style="flex:1;margin:0">
+                    <button class="btn btn-success" id="btn-tab-add">+ Add tab</button>
                 </div>
-                <div class="monitor-status">Общее редактирование вкладки Game: fullscreen/settings/gp-бэйдж, вьюпорты и прочие не-геймпадные элементы</div>
+                <div class="buttons" style="margin-top:8px">
+                    <button class="btn btn-dark btn-wide" id="btn-tabs-restore">↺ Restore default tabs</button>
+                </div>
+                <div class="monitor-status">✏️ — редактор вкладки (разделы и элементы); Game и Stream имеют свои редакторы</div>
             </div>
 
             <div class="section">
@@ -297,26 +115,6 @@
                 <div class="settings-row"><span>Edge speed</span><input type="range" id="set-edge-speed" min="5" max="100"><span id="set-edge-speed-val"></span></div>
             </div>
 
-            <div class="section">
-                <h2>Custom Elements</h2>
-                <div class="buttons">
-                    <select id="widget-tab-sel" class="device-select" style="margin:0;flex:1"></select>
-                    <select id="widget-type-sel" class="device-select" style="margin:0;flex:1">
-                        <option value="button">button</option>
-                        <option value="touchpad">touchpad</option>
-                        <option value="sequence">sequence</option>
-                        <option value="slider">slider</option>
-                        <option value="toggle">toggle</option>
-                        <option value="input">input</option>
-                        <option value="viewport">viewport</option>
-                    </select>
-                    <button class="btn btn-success" onclick="addWidget()">+ Add</button>
-                    <button class="btn btn-danger" onclick="deleteSelectedWidget()">✕</button>
-                </div>
-                <div class="custom-area" id="widget-preview" style="min-height:240px;margin-top:10px"></div>
-                <div class="monitor-status">Drag to move · Tap an element to edit · Save happens automatically</div>
-                <div id="widget-form" style="margin-top:10px"></div>
-            </div>
         </div>
     </div>
 
@@ -399,6 +197,19 @@
         <div class="layout-editor-hint">Тап/свайп — выбор · двойной тап — ✎ изменить / ✕ удалить · ⤡ — ресайз</div>
     </div>
 
+    <!-- Page/Stream Editor Overlay -->
+    <div class="layout-editor-overlay" id="page-editor-overlay">
+        <div class="layout-editor-topbar">
+            <span class="editor-title" id="page-editor-title">✏️</span>
+            <button class="btn btn-success" id="btn-page-add-section">+ Section</button>
+            <button class="btn btn-dark" id="btn-page-opacity" title="Реальная / полная непрозрачность">👁</button>
+            <button class="btn btn-warning" id="btn-stream-reset" style="display:none">↺ Reset</button>
+            <button class="btn btn-primary" id="btn-page-save">💾 Save</button>
+            <button class="btn btn-dark" id="btn-page-cancel">✕</button>
+        </div>
+        <div class="layout-editor-hint">Тап/свайп — выбор · двойной тап — ✎/✕ · ⤡ — ресайз · панель раздела: +El / ✎ / ↑↓ / ✕</div>
+    </div>
+
     <div id="toast"></div>
 
     <!-- Shutdown Prompt -->
@@ -413,12 +224,17 @@
     </div>
 
     <script src="js/core.js"></script>
-    <script src="js/monitor.js"></script>
+    <script src="js/editkit.js"></script>
     <script src="js/stream.js"></script>
     <script src="js/viewport.js"></script>
+    <script src="js/elements.js"></script>
+    <script src="js/blocks.js"></script>
     <script src="js/game.js"></script>
     <script src="js/editor.js"></script>
-    <script src="js/widgets.js"></script>
+    <script src="js/pages.js"></script>
+    <script src="js/pageeditor.js"></script>
+    <script src="js/streamlayout.js"></script>
+    <script src="js/settingsui.js"></script>
     <script src="js/init.js"></script>
 </body>
 </html>

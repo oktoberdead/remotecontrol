@@ -4,10 +4,9 @@
 
 renderTabs(); // мгновенно, по дефолтам — без мигания
 updateStatus();
-loadAudioDevices();
 loadConfigText();
 
-// конфиг → (хуки: виджеты, settings-вкладка) → game (IP, профили, рендер)
+// конфиг → хуки (страницы, settings-вкладка, stream-layout) → game (IP, профили)
 loadUiConfig().then(() => initGame());
 
 setInterval(updateStatus, 5000);

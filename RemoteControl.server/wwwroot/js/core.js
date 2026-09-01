@@ -57,16 +57,22 @@ function mouseClick(btn) { fire('POST', `/api/mouse/click/${btn}`); }
 // ==================== TABS (динамические, из ui-конфига) ====================
 let currentTab = 'main';
 
-const TAB_DEFS = [
-    { id: 'main', label: 'Main' },
-    { id: 'monitor', label: 'Monitor' },
-    { id: 'mouse', label: 'Mouse' },
-    { id: 'keys', label: 'Keys' },
-    { id: 'stream', label: 'Stream' },
-    { id: 'game', label: 'Game' },
-];
-const SETTINGS_TAB = { id: 'settings', label: 'Settings' };
-function allTabDefs() { return [...TAB_DEFS, SETTINGS_TAB]; }
+// Список вкладок динамический: страницы из uiCfg.pages (по tabOrder) +
+// специальные (stream/game — кодовые) + settings в конце
+const FALLBACK_ORDER = ['main', 'monitor', 'mouse', 'keys', 'stream', 'game'];
+const FALLBACK_LABELS = { main: 'Main', monitor: 'Monitor', mouse: 'Mouse', keys: 'Keys', stream: 'Stream', game: 'Game' };
+
+function allTabDefs() {
+    const order = (uiCfg.tabOrder && uiCfg.tabOrder.length) ? uiCfg.tabOrder : FALLBACK_ORDER;
+    const defs = [];
+    order.forEach(id => {
+        if (uiCfg.pages && uiCfg.pages[id]) defs.push({ id, label: uiCfg.pages[id].title || id });
+        else if (id === 'stream' || id === 'game') defs.push({ id, label: FALLBACK_LABELS[id] });
+        else if (!uiCfg.pages && FALLBACK_LABELS[id]) defs.push({ id, label: FALLBACK_LABELS[id] });
+    });
+    defs.push({ id: 'settings', label: 'Settings' });
+    return defs;
+}
 
 // Хуки вкладок: модули регистрируют своё поведение при входе/выходе
 // (стрим, геймпад, вьюпорты и т.д.) — ядро не знает деталей
@@ -122,18 +128,26 @@ function toggleTabMenu() {
     if (menu.classList.contains('show')) { hideTabMenu(); return; }
 
     menu.innerHTML = '';
-    let any = false;
     allTabDefs().forEach(t => {
         const tc = (uiCfg.tabs && uiCfg.tabs[t.id]) || {};
         if (tc.visible === false || !tc.inDropdown) return;
-        any = true;
         const b = document.createElement('button');
         b.className = 'tab-menu-item';
         b.textContent = t.label;
         b.onclick = () => switchToTab(t.id);
         menu.appendChild(b);
     });
-    if (any) menu.classList.add('show');
+
+    // редактируем ту вкладку, на которую смотрим
+    if (typeof tabEditable === 'function' && tabEditable(currentTab)) {
+        const e = document.createElement('button');
+        e.className = 'tab-menu-item tab-menu-edit';
+        e.textContent = '✏️ Edit this tab';
+        e.onclick = () => { hideTabMenu(); startTabEdit(currentTab); };
+        menu.appendChild(e);
+    }
+
+    if (menu.children.length) menu.classList.add('show');
 }
 
 function hideTabMenu() {
@@ -160,18 +174,19 @@ async function updateStatus() {
         if (layout && layout.layout) {
             $('#layout-badge').textContent = layout.layout;
         }
-        if (currentTab === 'monitor') updateMonitor();
-        refreshWidgetSliders();
+        if (typeof pagesRefresh === 'function' && typeof isPageTab === 'function' && isPageTab(currentTab)) {
+            pagesRefresh(currentTab);
+        }
     } catch (e) {
         console.error('updateStatus', e);
     }
 }
 
 function setVolumeUI(v) {
-    $('#vol-display').textContent = v + '%';
-    $('#vol-value').textContent = v + '%';
-    $('#vol-slider').value = v;
-    $('#vol-slider').style.setProperty('--val', v + '%');
+    // статической Volume-секции больше нет (слайдер — элемент страницы);
+    // в шапке остаётся только индикатор
+    const disp = $('#vol-display');
+    if (disp) disp.textContent = v + '%';
 }
 
 async function toggleWireGuard() {
@@ -185,14 +200,6 @@ function toggleLayout() {
 }
 
 // ==================== VOLUME ====================
-let volTimeout;
-$('#vol-slider').oninput = function () {
-    const v = this.value;
-    setVolumeUI(v);
-    clearTimeout(volTimeout);
-    volTimeout = setTimeout(() => apiS('POST', '/api/volume/set', { level: parseInt(v) }), 100);
-};
-
 async function volAction(action) {
     if (action === 'mute') {
         await apiS('POST', '/api/volume/mute');
@@ -203,34 +210,6 @@ async function volAction(action) {
     }
     setTimeout(updateStatus, 200);
 }
-
-// ==================== AUDIO DEVICES ====================
-async function loadAudioDevices() {
-    const d = await apiS('GET', '/api/audio/devices');
-    const sel = $('#audio-device');
-    if (d && d.success && d.devices && d.devices.length) {
-        sel.innerHTML = d.devices.map(x =>
-            `<option value="${x.name}"${x.isDefault ? ' selected' : ''}>${x.name}</option>`
-        ).join('');
-    } else {
-        sel.innerHTML = '<option>No devices</option>';
-    }
-}
-
-$('#audio-device').onchange = async function () {
-    const name = this.value;
-    toast('Switching...');
-    const result = await api('POST', '/api/audio/device', { name }, true);
-    if (result && result.success) {
-        toast('Switched to: ' + name);
-    } else {
-        toast('Failed to switch');
-    }
-    setTimeout(() => {
-        loadAudioDevices();
-        updateStatus();
-    }, 1000);
-};
 
 // ==================== GLOBAL TOUCH STATE ====================
 const activeTouches = new Map();
@@ -289,8 +268,8 @@ document.querySelectorAll('.mouse-btn').forEach(btn => {
 });
 
 // ==================== TOUCHPAD ====================
-function initTouchpad(id, sensKey) {
-    const pad = document.getElementById(id);
+function initTouchpad(padOrId, sensKey) {
+    const pad = typeof padOrId === 'string' ? document.getElementById(padOrId) : padOrId;
     if (!pad) return;
 
     let lastPos = null;
@@ -524,52 +503,12 @@ function initTouchpad(id, sensKey) {
     });
 }
 
-initTouchpad('touchpad', 'mouseSens');
+// Мышиный тачпад теперь builtin-блок (blk-mousepad, blocks.js); статичным остался только стримовый
 initTouchpad('stream-touchpad', 'streamSens');
 
 // ==================== KEYBOARD ====================
-const liveInput = $('#live-input');
-if (liveInput) {
-    let buffer = '';
-    let sendTimer = null;
-
-    liveInput.oninput = e => {
-        const data = e.data;
-        if (data) buffer += data;
-        clearTimeout(sendTimer);
-        sendTimer = setTimeout(() => {
-            if (buffer) {
-                apiS('POST', '/api/type', { text: buffer });
-                buffer = '';
-            }
-            liveInput.value = '';
-        }, 120);
-    };
-
-    liveInput.onkeydown = e => {
-        const map = {
-            Backspace: 'backspace', Enter: 'enter', Tab: 'tab', Escape: 'esc',
-            ArrowUp: 'up', ArrowDown: 'down', ArrowLeft: 'left', ArrowRight: 'right'
-        };
-        if (map[e.key]) {
-            e.preventDefault();
-            if (buffer) {
-                apiS('POST', '/api/type', { text: buffer });
-                buffer = '';
-                liveInput.value = '';
-            }
-            apiS('POST', '/api/key/' + map[e.key]);
-        }
-    };
-}
-
-function sendText() {
-    const inp = $('#text-input');
-    if (inp && inp.value) {
-        api('POST', '/api/type', { text: inp.value });
-        inp.value = '';
-    }
-}
+// live-input и send-text переехали в builtin-блоки (blocks.js);
+// здесь остался только клавиатурный инпут вкладки Stream
 
 const streamInput = $('#stream-input');
 const streamControls = $('#stream-controls');

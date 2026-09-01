@@ -3,11 +3,17 @@
 Сервер удалённого управления Windows-машиной (ASP.NET Core, net8.0-windows, порт 8086 по умолчанию).
 
 ## Что умеет
-- **Main**: громкость, медиа (± перемотка стрелками), системные кнопки, WireGuard, **Shutdown PC** (30 сек + отмена / мгновенно)
+- **Конструктор всей страницы**: вкладки создаются/удаляются/переименовываются/переставляются;
+  внутри вкладки — разделы-миниканвасы (добавить/удалить/переименовать/высота/порядок),
+  внутри разделов — элементы со свободным позиционированием (%), редактор один на всё:
+  тап/свайп — выбор (⤡), двойной тап — ✎/✕ (хэндлы всегда 100% opacity)
+- Вход в редактор: Settings → Tabs → ✏️, либо дропдаун ⋯ → «Edit this tab»
+- **Main** (дефолтная страница): громкость, медиа, системные кнопки, WireGuard, **Shutdown PC** — всё атомами/блоками, полностью редактируется
 - **Monitor**: два независимых блока:
   - старый путь — яркость/вкл/выкл через ControlMyMonitor (DDC/CI)
   - **новый низкоуровневый** — напрямую WinAPI `dxva2.dll` (`/api/monitor2/*`), экспериментально; выпиливается независимо
-- **Mouse / Stream**: тачпады (сенси и edge-зоны настраиваются), стрим с зумом (плавный, на клиенте), FPS, качество, fullscreen
+- **Mouse / Stream**: тачпады (сенси и edge-зоны настраиваются), стрим с зумом (плавный, на клиенте), FPS, качество, fullscreen;
+  блоки Stream переставляются/ресайзятся отдельно для портретной и альбомной ориентаций (конфиг per-orientation)
 - **Game**: полноценный конструктор:
   - типовые элементы: button (click/hold/toggle/repeat-спам с задержками), touchpad (X/Y), scrollbar (1 ось), joystick, **viewport** (живой стрим фоном — «облачный гейминг», ахаха), системные (fullscreen/settings/gp-бэйдж) — всё двигается/ресайзится/удаляется
   - слои: background / viewport / controls / overlay / system; в редакторе неактуальные слои приглушаются; opacity на элемент (5–100%) + тоггл реальной/полной непрозрачности
@@ -22,10 +28,18 @@
 - Конфиг UI хранится в `LocalApplicationData\RemoteControl\ui.json` (сырой JSON, схему держит клиент)
 
 ## Структура фронта
-`wwwroot/index.html` — разметка; `css/app.css`; `js/` — модули:
-`core` (утилиты/вкладки/конфиг) → `monitor` → `stream` (вкладка + StreamHub для вьюпортов) →
-`viewport` (вьюпорт-элемент) → `game` (профили/рендер/поведения) → `editor` (режим редактирования) →
-`widgets` (кастомные элементы + вкладка Settings) → `init`.
+`wwwroot/index.html` — разметка (статичны только Stream/Game/Settings, страницы рендерятся из конфига);
+`css/app.css`; `js/` — модули (порядок загрузки):
+`core` (утилиты/вкладки/конфиг) → `editkit` (общий тулкит редактора: формы/хэндлы/драг) →
+`stream` (вкладка + StreamHub) → `viewport` (вьюпорт-элемент) →
+`elements` (единый рантайм элементов: wrap+body, поведения) → `blocks` (builtin-блоки:
+монитор×2, mousepad, live-input, send-text, audio, shutdown) → `game` → `editor` (game-редактор) →
+`pages` (модель/дефолты/миграция/рендер страниц) → `pageeditor` → `streamlayout` (ориентации) →
+`settingsui` (менеджер вкладок) → `init`.
+
+Типы элементов: button (key/mouse/combo/api; click/hold/toggle/repeat — интервалы по режиму),
+touchpad, scrollbar, joystick, viewport (+gear), slider, toggle, input, label, sequence,
+sys-* (fullscreen/settings/gp) и blk-* (builtin-блоки).
 
 ## Вкладка Monitor (DDC/CI, ControlMyMonitor)
 - Положи `ControlMyMonitor.exe` (NirSoft) в папку рядом с `RemoteControl.Server.exe`,

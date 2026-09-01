@@ -746,18 +746,18 @@
             }
 
         /* Edit mode */
-        .game-area.edit-mode .game-element {
+        .edit-mode .game-element {
             outline: 2px dashed rgba(0,217,255,.5);
             cursor: move;
         }
 
-        .game-area.edit-mode .resize-handle {
+        .edit-mode .resize-handle {
             display: flex;
             align-items: center;
             justify-content: center;
         }
 
-        .game-area.edit-mode .game-element:hover {
+        .edit-mode .game-element:hover {
             outline-color: #00d9ff;
         }
 
@@ -1474,30 +1474,30 @@
     }
 
 /* режим редактирования: пунктирная рамка у всех, хэндлы — только по выбору */
-.game-area.edit-mode .game-element {
+.edit-mode .game-element {
     outline: 2px dashed rgba(0,217,255,.4);
     cursor: move;
 }
 
-.game-area.edit-mode .game-element.selected {
+.edit-mode .game-element.selected {
     outline: 2px solid #00d9ff !important;
 }
 
-    .game-area.edit-mode .game-element.selected .ctl-handle.h-resize {
+    .edit-mode .game-element.selected .ctl-handle.h-resize {
         display: flex;
     }
 
-    .game-area.edit-mode .game-element.selected.show-actions .ctl-handle {
+    .edit-mode .game-element.selected.show-actions .ctl-handle {
         display: flex;
     }
 
-.game-area.edit-mode .game-element.resizing .ctl-handle.h-edit,
-.game-area.edit-mode .game-element.resizing .ctl-handle.h-delete {
+.edit-mode .game-element.resizing .ctl-handle.h-edit,
+.edit-mode .game-element.resizing .ctl-handle.h-delete {
     display: none !important;
 }
 
 /* слои: неактуальные приглушаем */
-.game-area.edit-mode .game-element.layer-dim {
+.edit-mode .game-element.layer-dim {
     opacity: .18 !important;
     pointer-events: none;
 }
@@ -1672,4 +1672,163 @@
     font-size: 10px;
     color: #666;
     margin-top: 6px;
+}
+
+/* ==========================================================================
+   v2.2: конструктор всей страницы (разделы-канвасы, builtin-блоки, stream)
+   ========================================================================== */
+
+/* --- обёртка элемента: хэндлы вне body → всегда 100% opacity --- */
+.ge-wrap {
+    position: absolute;
+    touch-action: none;
+    user-select: none;
+}
+
+    .ge-wrap > .ge-body {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: inherit;
+    }
+
+/* канвас раздела страницы */
+.page-canvas {
+    position: relative;
+    overflow: hidden;
+}
+
+    .page-canvas.edit-mode {
+        outline: 1px dashed rgba(0,217,255,.25);
+        border-radius: 8px;
+    }
+
+/* панель раздела в редакторе */
+.sec-toolbar {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+    margin-bottom: 6px;
+    flex-wrap: wrap;
+}
+
+    .sec-toolbar .btn {
+        padding: 4px 10px;
+        font-size: 11px;
+    }
+
+/* builtin-блоки */
+.ge-block {
+    flex-direction: column;
+    align-items: stretch !important;
+    justify-content: flex-start !important;
+    overflow: hidden;
+    text-align: left;
+}
+
+    .ge-block h2 {
+        font-size: 11px;
+        text-transform: uppercase;
+        color: #667;
+        letter-spacing: 1px;
+        margin-bottom: 8px;
+    }
+
+    .ge-block .blk-pad {
+        flex: 1;
+        min-height: 40px;
+    }
+
+/* щит: в редакторе блок «заморожен», внутренности не ловят тапы */
+.blk-shield {
+    position: absolute;
+    inset: 0;
+    z-index: 50;
+    background: rgba(0,217,255,.04);
+}
+
+/* простые элементы страниц */
+.ge-label {
+    color: #99a;
+    justify-content: flex-start !important;
+    pointer-events: none;
+}
+
+.ge-slider {
+    width: 100%;
+}
+
+.ge-input input {
+    width: 100%;
+    height: 100%;
+}
+
+/* заголовок в топбаре редактора */
+.editor-title {
+    color: #00d9ff;
+    font-size: 12px;
+    align-self: center;
+    padding: 0 6px;
+    white-space: nowrap;
+}
+
+/* менеджер вкладок */
+.tabman-row .tabman-name {
+    flex: 1;
+    min-width: 70px;
+    cursor: pointer;
+}
+
+.tabman-row .btn {
+    padding: 5px 8px;
+    font-size: 11px;
+}
+
+    .tabman-row .btn:disabled {
+        opacity: .25;
+        pointer-events: none;
+    }
+
+.tab-menu-edit {
+    border-top: 1px solid rgba(255,255,255,.08);
+    color: #e67e22 !important;
+}
+
+/* --- stream: кастомный лэйаут (два независимых конфига по ориентации) --- */
+.stream-wrap.custom-layout {
+    position: relative;
+    display: block;
+}
+
+    /* контейнер controls растворяется: блоки позиционируются от stream-wrap */
+    .stream-wrap.custom-layout .stream-controls {
+        display: contents;
+    }
+
+    .stream-wrap.custom-layout [data-sblock] {
+        position: absolute;
+        margin: 0;
+    }
+
+    .stream-wrap.custom-layout .stream-view {
+        max-height: none;
+        aspect-ratio: auto;
+        width: auto;
+        height: auto;
+    }
+
+    .stream-wrap.custom-layout .stream-touchpad {
+        min-height: 0;
+    }
+
+.stream-wrap.stream-editing [data-sblock] {
+    outline: 2px dashed rgba(0,217,255,.4);
+}
+
+/* инпут стрима в режиме редактирования лэйаута должен быть виден */
+.stream-wrap.stream-editing .keyboard-input {
+    display: block !important;
+    pointer-events: none;
 }
