@@ -1,0 +1,20 @@
+## Артефакты сборки .NET
+bin/
+obj/
+publish/
+*.user
+
+## Visual Studio
+.vs/
+
+## .NET SDK / runtime кэш
+*.binlog
+TestResults/
+
+## IDE
+.idea/
+*.swp
+
+## OS
+Thumbs.db
+.DS_Store

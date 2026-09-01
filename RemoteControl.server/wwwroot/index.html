@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -210,13 +210,53 @@
             outline: 0
         }
 
-            .volume-slider::-webkit-slider-thumb {
-                -webkit-appearance: none;
-                width: 26px;
-                height: 26px;
-                background: #fff;
-                border-radius: 50%;
-                box-shadow: 0 2px 6px rgba(0,0,0,.3)
+        .volume-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 26px;
+            height: 26px;
+            background: #fff;
+            border-radius: 50%;
+            box-shadow: 0 2px 6px rgba(0,0,0,.3)
+        }
+
+        .monitor-name {
+            color: #888;
+            font-size: .75em;
+            font-weight: 400;
+            text-transform: none;
+            letter-spacing: 0;
+            word-break: break-all
+        }
+
+        .monitor-input-row {
+            display: flex;
+            gap: 6px;
+            margin-bottom: 10px
+        }
+
+            .monitor-input-row .keyboard-input {
+                flex: 1
+            }
+
+        .monitor-warning {
+            background: rgba(230,126,34,.12);
+            border: 1px solid rgba(230,126,34,.4);
+            color: #e67e22;
+            border-radius: 8px;
+            padding: 8px 10px;
+            font-size: .8em;
+            line-height: 1.4;
+            margin-bottom: 10px
+        }
+
+        .monitor-status {
+            margin-top: 10px;
+            font-size: .8em;
+            color: #888
+        }
+
+            .monitor-status.on {
+                color: #00ff88
             }
 
         .device-select {
@@ -235,6 +275,7 @@
             }
 
         .touchpad {
+            position: relative;
             background: rgba(0,0,0,.4);
             border: 2px solid rgba(67,97,238,.3);
             border-radius: 12px;
@@ -348,9 +389,48 @@
             z-index: 1000
         }
 
-            #toast.show {
-                transform: translateX(-50%) translateY(0)
+        #toast.show {
+            transform: translateX(-50%) translateY(0)
+        }
+
+        .shutdown-modal {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,.7);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1001
+        }
+
+            .shutdown-modal.show {
+                display: flex
             }
+
+        .shutdown-box {
+            background: #16213e;
+            border: 1px solid rgba(230,57,70,.5);
+            border-radius: 14px;
+            padding: 18px;
+            width: min(88vw, 320px);
+            display: flex;
+            flex-direction: column;
+            gap: 8px
+        }
+
+        .shutdown-title {
+            color: #ff6b6b;
+            font-size: 1.1em;
+            font-weight: 700;
+            text-align: center
+        }
+
+        .shutdown-text {
+            color: #888;
+            font-size: .85em;
+            text-align: center;
+            margin-bottom: 6px
+        }
 
         /* Stream */
         .stream-wrap {
@@ -403,6 +483,32 @@
         .stream-controls.kb-mode .mouse-buttons,
         .stream-controls.kb-mode .zoom-controls {
             display: none
+        }
+
+        /* Landscape на телефоне: экран слева, кнопки столбиком справа */
+        @media (orientation: landscape) and (max-height: 520px) {
+            .stream-wrap {
+                flex-direction: row
+            }
+
+            .stream-view {
+                width: auto;
+                max-height: none;
+                height: 100%;
+                aspect-ratio: auto;
+                flex: 3;
+                min-width: 0
+            }
+
+            .stream-controls {
+                flex: 2;
+                min-width: 170px;
+                max-width: 45%
+            }
+
+            .stream-touchpad {
+                min-height: 56px
+            }
         }
 
         .stream-controls .keyboard-input {
@@ -662,6 +768,70 @@
             outline-color: #00d9ff;
         }
 
+        .el-handle {
+            display: none;
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+            color: #000;
+            z-index: 101;
+            box-shadow: 0 1px 4px rgba(0,0,0,.5)
+        }
+
+            .el-handle.h-key {
+                left: -8px;
+                top: -8px;
+                background: #e67e22
+            }
+
+            .el-handle.h-del {
+                right: -8px;
+                top: -8px;
+                background: #e63946;
+                color: #fff
+            }
+
+        .game-element.selected {
+            outline: 2px solid #00d9ff !important
+        }
+
+            .game-element.selected .el-handle {
+                display: flex
+            }
+
+            .game-element.resizing .el-handle {
+                display: none !important
+            }
+
+        .el-options {
+            position: absolute;
+            z-index: 300;
+            display: flex;
+            gap: 4px;
+            background: rgba(22,33,62,.97);
+            border: 1px solid rgba(0,217,255,.5);
+            border-radius: 8px;
+            padding: 4px
+        }
+
+            .el-options button {
+                border: 0;
+                background: #333;
+                color: #fff;
+                border-radius: 6px;
+                padding: 6px 8px;
+                font-size: 11px;
+                cursor: pointer
+            }
+
+                .el-options button.danger {
+                    background: #e63946
+                }
+
         /* Custom buttons */
         .custom-btn {
             position: absolute;
@@ -899,6 +1069,231 @@
         body.game-fs .game-topbar {
             padding: 6px 10px;
         }
+
+        /* ==================== ДРОПДАУН ВКЛАДОК ==================== */
+        #tab-bar {
+            position: relative
+        }
+
+        .tab-more {
+            flex: 0 0 40px;
+            font-size: 16px;
+            padding-top: 10px
+        }
+
+        .tab-menu {
+            position: absolute;
+            top: 100%;
+            right: 2px;
+            z-index: 500;
+            background: #16213e;
+            border: 1px solid rgba(0,217,255,.35);
+            border-radius: 0 0 10px 10px;
+            min-width: 140px;
+            display: none;
+            flex-direction: column;
+            box-shadow: 0 8px 24px rgba(0,0,0,.5)
+        }
+
+            .tab-menu.show {
+                display: flex
+            }
+
+        .tab-menu-item {
+            border: 0;
+            background: 0;
+            color: #ccc;
+            padding: 10px 14px;
+            font-size: 13px;
+            cursor: pointer;
+            text-align: left
+        }
+
+            .tab-menu-item:hover {
+                background: rgba(0,217,255,.12);
+                color: #00d9ff
+            }
+
+        /* ==================== CUSTOM AREAS & WIDGETS ==================== */
+        .custom-area {
+            position: relative;
+            min-height: 200px;
+            background: rgba(0,0,0,.2);
+            border: 1px dashed rgba(255,255,255,.18);
+            border-radius: 12px;
+            margin-top: 12px;
+            overflow: hidden
+        }
+
+            .custom-area:empty::after {
+                content: 'Custom area — add elements in Settings';
+                position: absolute;
+                inset: 0;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                color: #444;
+                font-size: .78em
+            }
+
+        .widget {
+            position: absolute;
+            touch-action: none;
+            z-index: 5
+        }
+
+        .widget.btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            white-space: nowrap
+        }
+
+        .widget-touchpad {
+            background: rgba(0,0,0,.45);
+            border: 2px solid rgba(67,97,238,.4);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #556;
+            font-size: 11px
+        }
+
+        .widget-slider {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 2px;
+            background: rgba(0,0,0,.3);
+            border-radius: 8px;
+            padding: 4px 6px
+        }
+
+            .widget-slider .widget-val {
+                font-size: 11px;
+                color: #00d9ff;
+                font-weight: 700
+            }
+
+            .widget-slider input[type=range] {
+                width: 100%;
+                margin: 0
+            }
+
+        .widget-input input {
+            width: 100%;
+            box-sizing: border-box;
+            padding: 6px 8px;
+            background: rgba(0,0,0,.4);
+            border: 1px solid rgba(67,97,238,.4);
+            border-radius: 8px;
+            color: #fff;
+            font-size: 13px
+        }
+
+        .widget-editable {
+            outline: 2px dashed rgba(0,217,255,.6)
+        }
+
+        .custom-touchpad {
+            border-style: dashed !important;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #667
+        }
+
+        /* ==================== SETTINGS TAB ==================== */
+        .settings-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 8px;
+            font-size: .85em
+        }
+
+            .settings-row > span:first-child {
+                flex: 1;
+                color: #aab
+            }
+
+            .settings-row input[type=range] {
+                width: 110px
+            }
+
+            .settings-row input[type=checkbox] {
+                width: 20px;
+                height: 20px
+            }
+
+            .settings-row .btn-sm {
+                min-width: 56px
+            }
+
+        .cfg-textarea {
+            width: 100%;
+            min-height: 160px;
+            box-sizing: border-box;
+            background: rgba(0,0,0,.4);
+            border: 1px solid rgba(255,255,255,.15);
+            border-radius: 8px;
+            color: #9fd;
+            font-family: Consolas, monospace;
+            font-size: 11px;
+            padding: 8px;
+            resize: vertical
+        }
+
+        .cfg-mini {
+            flex: 0 1 120px;
+            padding: 6px 8px;
+            background: rgba(0,0,0,.4);
+            border: 1px solid rgba(255,255,255,.2);
+            border-radius: 6px;
+            color: #fff;
+            font-size: 12px
+        }
+
+        .widget-form-row .cfg-mini {
+            flex: 0 1 110px
+        }
+
+        .widget-form-row {
+            margin-bottom: 6px
+        }
+
+        .steps-area {
+            flex: 1;
+            min-height: 70px;
+            font-family: Consolas, monospace
+        }
+
+        /* ==================== TOUCHPAD EDGE ZONES (mouse/stream) ==================== */
+        #touchpad {
+            flex: none;
+            width: min(70%, 280px);
+            aspect-ratio: 1;
+            margin: 0 auto
+        }
+
+        .pad-edge-zone {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            border-radius: 14px;
+            pointer-events: none;
+            --edge-size: 10%;
+            opacity: .35;
+            background: linear-gradient(to right, rgba(230,126,34,.25) 0%, rgba(230,126,34,.25) var(--edge-size), transparent var(--edge-size), transparent calc(100% - var(--edge-size)), rgba(230,126,34,.25) calc(100% - var(--edge-size)), rgba(230,126,34,.25) 100%), linear-gradient(to bottom, rgba(230,126,34,.25) 0%, rgba(230,126,34,.25) var(--edge-size), transparent var(--edge-size), transparent calc(100% - var(--edge-size)), rgba(230,126,34,.25) calc(100% - var(--edge-size)), rgba(230,126,34,.25) 100%)
+        }
+
+        .touchpad.edge-active .pad-edge-zone {
+            opacity: 1
+        }
     </style>
 </head>
 <body>
@@ -912,14 +1307,7 @@
             </div>
         </div>
 
-        <div class="tabs">
-            <button class="tab active" data-tab="main">Main</button>
-            <button class="tab" data-tab="mouse">Mouse</button>
-            <button class="tab" data-tab="keys">Keys</button>
-            <button class="tab" data-tab="stream">Stream</button>
-            <button class="tab" data-tab="macros">Macros</button>
-            <button class="tab" data-tab="game">Game</button>
-        </div>
+        <div class="tabs" id="tab-bar"></div>
 
         <!-- MAIN -->
         <div id="tab-main" class="content active">
@@ -940,9 +1328,11 @@
             <div class="section">
                 <h2>Media</h2>
                 <div class="buttons">
+                    <button class="btn btn-dark btn-icon" onclick="api('POST','/api/key/left')" title="Перемотка назад">⏪</button>
                     <button class="btn btn-dark btn-icon" onclick="api('POST','/api/key/prev')">⏮</button>
                     <button class="btn btn-primary btn-icon" onclick="api('POST','/api/key/playpause')">⏯</button>
                     <button class="btn btn-dark btn-icon" onclick="api('POST','/api/key/next')">⏭</button>
+                    <button class="btn btn-dark btn-icon" onclick="api('POST','/api/key/right')" title="Перемотка вперёд">⏩</button>
                     <button class="btn btn-dark btn-icon" onclick="api('POST','/api/key/stop')">⏹</button>
                 </div>
             </div>
@@ -955,19 +1345,58 @@
                     <button class="btn btn-danger" onclick="api('POST','/api/combo',{keys:['alt','f4']})">Alt+F4</button>
                     <button class="btn btn-dark" onclick="api('POST','/api/key/f11')">F11</button>
                 </div>
+                <div class="buttons" style="margin-top:8px">
+                    <button class="btn btn-danger btn-wide" id="btn-shutdown" onclick="openShutdownPrompt()">⏻ Shutdown PC</button>
+                    <button class="btn btn-dark btn-wide" id="btn-cancel-shutdown" onclick="cancelScheduledShutdown()" style="display:none">⏹ Cancel</button>
+                </div>
             </div>
 
             <div class="section">
                 <h2>WireGuard</h2>
                 <button class="btn btn-primary btn-wide" onclick="toggleWireGuard()">Toggle VPN</button>
             </div>
+
+            <div class="custom-area" id="custom-area-main"></div>
+        </div>
+
+        <!-- MONITOR -->
+        <div id="tab-monitor" class="content">
+            <div class="section">
+                <h2>Monitor <span class="monitor-name" id="mon-name"></span></h2>
+
+                <div id="mon-unavailable" class="monitor-warning" style="display:none">
+                    ControlMyMonitor.exe not found.<br>
+                    Положи exe рядом с сервером или укажи путь в appsettings: <b>Monitor:CmmPath</b>
+                </div>
+
+                <div class="volume-row">
+                    <span class="volume-value" id="mon-brightness-val">--</span>
+                    <input type="range" min="0" max="100" value="50" step="1" class="volume-slider" id="mon-brightness-slider">
+                </div>
+
+                <div class="monitor-input-row">
+                    <input type="number" class="keyboard-input" id="mon-brightness-input" min="0" max="100" step="1" placeholder="0-100" inputmode="numeric">
+                    <button class="btn btn-primary" onclick="applyMonitorBrightness()">Apply</button>
+                </div>
+
+                <div class="buttons">
+                    <button class="btn btn-success btn-wide" onclick="monPower('on')">On</button>
+                    <button class="btn btn-danger btn-wide" onclick="monPower('off')">Off</button>
+                    <button class="btn btn-dark btn-wide" onclick="monPower('toggle')">Switch</button>
+                </div>
+
+                <div class="monitor-status" id="mon-power">Power: --</div>
+            </div>
+
+            <div class="custom-area" id="custom-area-monitor"></div>
         </div>
 
         <!-- MOUSE -->
         <div id="tab-mouse" class="content">
             <div class="section" style="flex:1;display:flex;flex-direction:column">
                 <h2>Touchpad</h2>
-                <div class="touchpad" id="touchpad" style="flex:1;min-height:250px">
+                <div class="touchpad" id="touchpad">
+                    <div class="pad-edge-zone"></div>
                     <div>Drag to move</div>
                     <div class="touchpad-hint">Tap | DoubleTap | Tap-Hold-Drag</div>
                     <div class="touchpad-hint">Two fingers = Scroll</div>
@@ -978,6 +1407,8 @@
                     <button class="btn btn-primary mouse-btn" data-btn="right">Right</button>
                 </div>
             </div>
+
+            <div class="custom-area" id="custom-area-mouse"></div>
         </div>
 
         <!-- KEYS -->
@@ -1033,6 +1464,8 @@
                     <button class="btn btn-warning" onclick="api('POST','/api/combo',{keys:['ctrl','shift','esc']})">TaskMgr</button>
                 </div>
             </div>
+
+            <div class="custom-area" id="custom-area-keys"></div>
         </div>
 
         <!-- STREAM -->
@@ -1058,9 +1491,17 @@
                             <span id="zoom-label" style="color:#888;font-size:12px;min-width:50px;text-align:center">1.0x</span>
                             <button class="btn btn-dark" onclick="zoomIn()">+</button>
                             <button class="btn btn-dark" onclick="zoomReset()">Reset</button>
+                            <button class="btn btn-dark" onclick="toggleFullscreen()" title="Fullscreen">⛶</button>
+                        </div>
+                        <div class="fps-control">
+                            <span class="fps-label">Q:</span>
+                            <button class="btn btn-dark btn-sm qbtn" onclick="setQuality(100, 0)">Max</button>
+                            <button class="btn btn-dark btn-sm qbtn" onclick="setQuality(75, 0)">Med</button>
+                            <button class="btn btn-dark btn-sm qbtn" onclick="setQuality(50, 35)">Low</button>
+                            <span id="q-display" class="fps-value">100</span>
                         </div>
                     </div>
-                    <div class="touchpad stream-touchpad" id="stream-touchpad">Touchpad</div>
+                    <div class="touchpad stream-touchpad" id="stream-touchpad"><div class="pad-edge-zone"></div>Touchpad</div>
                     <div class="mouse-buttons">
                         <button class="btn btn-primary mouse-btn" data-btn="left">L</button>
                         <button class="btn btn-dark mouse-btn" data-btn="middle">M</button>
@@ -1203,6 +1644,8 @@
                         <option value="key-press">Key (Press)</option>
                         <option value="key-toggle">Key (Toggle)</option>
                         <option value="mouse-hold">Mouse (Hold)</option>
+                        <option value="touchpad1">Touchpad: Scroll</option>
+                        <option value="touchpad2">Touchpad: Mouse</option>
                     </select>
                 </div>
 
@@ -1229,12 +1672,43 @@
             </div>
         </div>
 
-        <!-- MACROS -->
-        <div id="tab-macros" class="content">
+        <!-- SETTINGS -->
+        <div id="tab-settings" class="content">
             <div class="section">
-                <h2>Macros</h2>
-                <div id="macros-list"></div>
-                <button class="btn btn-success" style="width:100%;margin-top:10px" onclick="alert('Coming soon!')">+ New</button>
+                <h2>General</h2>
+                <textarea id="cfg-text" class="cfg-textarea" spellcheck="false" placeholder="appsettings.json..."></textarea>
+                <div class="buttons" style="margin-top:8px">
+                    <button class="btn btn-primary" onclick="saveConfigText()">💾 Save</button>
+                    <button class="btn btn-dark" onclick="loadConfigText()">↻ Reload</button>
+                    <button class="btn btn-danger" onclick="restartServer()">⟳ Restart</button>
+                </div>
+                <div class="monitor-status">Port — после рестарта; большинство настроек — сразу</div>
+            </div>
+
+            <div class="section">
+                <h2>Tabs</h2>
+                <div id="tabs-rows"></div>
+            </div>
+
+            <div class="section">
+                <h2>Mouse / Stream</h2>
+                <div class="settings-row"><span>Mouse sensitivity</span><input type="range" id="set-mouse-sens" min="5" max="40"><span id="set-mouse-sens-val"></span></div>
+                <div class="settings-row"><span>Stream sensitivity</span><input type="range" id="set-stream-sens" min="5" max="40"><span id="set-stream-sens-val"></span></div>
+                <div class="settings-row"><span>Edge zone (8 dir)</span><input type="checkbox" id="set-edge-on"></div>
+                <div class="settings-row"><span>Edge size, %</span><input type="range" id="set-edge-size" min="3" max="25"><span id="set-edge-size-val"></span></div>
+                <div class="settings-row"><span>Edge speed</span><input type="range" id="set-edge-speed" min="5" max="100"><span id="set-edge-speed-val"></span></div>
+            </div>
+
+            <div class="section">
+                <h2>Custom Elements</h2>
+                <div class="buttons">
+                    <select id="widget-tab-sel" class="device-select" style="margin:0;flex:1"></select>
+                    <button class="btn btn-success" onclick="addWidget()">+ Add</button>
+                    <button class="btn btn-danger" onclick="deleteSelectedWidget()">✕</button>
+                </div>
+                <div class="custom-area" id="widget-preview" style="min-height:240px;margin-top:10px"></div>
+                <div class="monitor-status">Drag to move · Tap an element to edit · Save happens automatically</div>
+                <div id="widget-form" style="margin-top:10px"></div>
             </div>
         </div>
     </div>
@@ -1300,7 +1774,7 @@
             <button class="btn btn-primary" id="btn-save-layout">💾 Save</button>
             <button class="btn btn-dark" id="btn-cancel-layout">✕ Cancel</button>
         </div>
-        <div class="layout-editor-hint">Drag buttons to move. Tap to edit. Long-press to delete.</div>
+        <div class="layout-editor-hint">Drag to move · Tap — select · Double-tap — options · Corners: 🔑 / ✕ / ⤡</div>
     </div>
 
     <!-- Add Button Modal -->
@@ -1347,6 +1821,17 @@
     </div>
 
     <div id="toast"></div>
+
+    <!-- Shutdown Prompt -->
+    <div class="shutdown-modal" id="shutdown-modal">
+        <div class="shutdown-box">
+            <div class="shutdown-title">⏻ Shutdown PC?</div>
+            <div class="shutdown-text">Компьютер будет выключен</div>
+            <button class="btn btn-warning btn-wide" onclick="scheduleShutdown(30)">Через 30 сек</button>
+            <button class="btn btn-danger btn-wide" onclick="scheduleShutdown(0)">Мгновенно 🔥</button>
+            <button class="btn btn-dark btn-wide" onclick="closeShutdownPrompt()">Отмена</button>
+        </div>
+    </div>
 
     <script>
         // ==================== UTILS ====================
@@ -1401,22 +1886,94 @@
         function mouseWheel(delta) { fire('POST', '/api/mouse/scroll', { delta }); }
         function mouseClick(btn) { fire('POST', `/api/mouse/click/${btn}`); }
 
-        // ==================== TABS ====================
+        // ==================== TABS (динамические, из ui-конфига) ====================
         let currentTab = 'main';
 
-        $$('.tab').forEach(t => t.onclick = () => {
+        const TAB_DEFS = [
+            { id: 'main', label: 'Main' },
+            { id: 'monitor', label: 'Monitor' },
+            { id: 'mouse', label: 'Mouse' },
+            { id: 'keys', label: 'Keys' },
+            { id: 'stream', label: 'Stream' },
+            { id: 'game', label: 'Game' },
+        ];
+        const SETTINGS_TAB = { id: 'settings', label: 'Settings' };
+        function allTabDefs() { return [...TAB_DEFS, SETTINGS_TAB]; }
+
+        function switchToTab(id) {
             $$('.tab').forEach(x => x.classList.remove('active'));
             $$('.content').forEach(x => x.classList.remove('active'));
-            t.classList.add('active');
-            $('#tab-' + t.dataset.tab).classList.add('active');
+            const btn = document.querySelector(`.tab[data-tab="${id}"]`);
+            if (btn) btn.classList.add('active');
+            const content = $('#tab-' + id);
+            if (content) content.classList.add('active');
+            hideTabMenu();
 
-            if (currentTab === 'stream' && t.dataset.tab !== 'stream') stopStream();
-            if (t.dataset.tab === 'stream') startStream();
+            if (currentTab === 'stream' && id !== 'stream') stopStream();
+            if (id === 'stream') startStream();
 
-            if (currentTab === 'game' && t.dataset.tab !== 'game') gpDisconnect();
-            if (t.dataset.tab === 'game') gpConnect();
+            if (currentTab === 'game' && id !== 'game') gpDisconnect();
+            if (id === 'game') gpConnect();
 
-            currentTab = t.dataset.tab;
+            if (id === 'monitor') updateMonitor();
+
+            currentTab = id;
+        }
+
+        function renderTabs() {
+            const bar = $('#tab-bar');
+            if (!bar) return;
+            bar.innerHTML = '';
+
+            allTabDefs().forEach(t => {
+                const tc = (uiCfg.tabs && uiCfg.tabs[t.id]) || {};
+                if (tc.visible === false || tc.inDropdown) return;
+                const b = document.createElement('button');
+                b.className = 'tab' + (t.id === currentTab ? ' active' : '');
+                b.dataset.tab = t.id;
+                b.textContent = t.label;
+                b.onclick = () => switchToTab(t.id);
+                bar.appendChild(b);
+            });
+
+            const more = document.createElement('button');
+            more.className = 'tab tab-more';
+            more.textContent = '⋯';
+            more.onclick = e => { e.stopPropagation(); toggleTabMenu(); };
+            bar.appendChild(more);
+
+            const menu = document.createElement('div');
+            menu.className = 'tab-menu';
+            menu.id = 'tab-menu';
+            bar.appendChild(menu);
+        }
+
+        function toggleTabMenu() {
+            const menu = $('#tab-menu');
+            if (!menu) return;
+            if (menu.classList.contains('show')) { hideTabMenu(); return; }
+
+            menu.innerHTML = '';
+            let any = false;
+            allTabDefs().forEach(t => {
+                const tc = (uiCfg.tabs && uiCfg.tabs[t.id]) || {};
+                if (tc.visible === false || !tc.inDropdown) return;
+                any = true;
+                const b = document.createElement('button');
+                b.className = 'tab-menu-item';
+                b.textContent = t.label;
+                b.onclick = () => switchToTab(t.id);
+                menu.appendChild(b);
+            });
+            if (any) menu.classList.add('show');
+        }
+
+        function hideTabMenu() {
+            $('#tab-menu')?.classList.remove('show');
+        }
+
+        document.addEventListener('click', e => {
+            if (!e.target.closest('#tab-menu') && !e.target.closest('.tab-more')) hideTabMenu();
         });
 
         // ==================== STATUS ====================
@@ -1435,6 +1992,8 @@
                 if (layout && layout.layout) {
                     $('#layout-badge').textContent = layout.layout;
                 }
+                if (currentTab === 'monitor') updateMonitor();
+                refreshWidgetSliders();
             } catch (e) {
                 console.error('updateStatus', e);
             }
@@ -1562,7 +2121,7 @@
         });
 
         // ==================== TOUCHPAD ====================
-        function initTouchpad(id) {
+        function initTouchpad(id, sensKey) {
             const pad = document.getElementById(id);
             if (!pad) return;
 
@@ -1577,9 +2136,38 @@
             let dragTimer = null;
             let padTouches = new Set();
 
-            const SENS = 1.8;
             const TAP_TIMEOUT = 280;
             const DRAG_DELAY = 140;
+
+            // Edge-зоны (8 направлений): палец у края — курсор уезжает
+            let edgeTimer = null, edgeEx = 0, edgeEy = 0;
+            const edgeZoneEl = pad.querySelector('.pad-edge-zone');
+            function edgeStart(dx, dy) {
+                edgeEx = dx; edgeEy = dy;
+                if (!edgeTimer) {
+                    edgeTimer = setInterval(() => fire('POST', '/api/mouse/move', { x: edgeEx, y: edgeEy }), 16);
+                    pad.classList.add('edge-active');
+                }
+            }
+            function edgeStop() {
+                if (edgeTimer) { clearInterval(edgeTimer); edgeTimer = null; }
+                pad.classList.remove('edge-active');
+            }
+            function edgeCheck(touch) {
+                const st = uiCfg.settings;
+                if (!st.edgeEnabled) return false;
+                const r = pad.getBoundingClientRect();
+                if (!r.width || !r.height) return false;
+                const nx = (touch.clientX - r.left) / r.width;
+                const ny = (touch.clientY - r.top) / r.height;
+                const edge = (st.edgeSize || 10) / 100;
+                const sp = st.edgeSpeed || 30;
+                let ex = 0, ey = 0;
+                if (nx < edge) ex = -sp; else if (nx > 1 - edge) ex = sp;
+                if (ny < edge) ey = -sp; else if (ny > 1 - edge) ey = sp;
+                if (ex || ey) { edgeStart(ex, ey); return true; }
+                return false;
+            }
 
             pad.addEventListener('touchstart', e => {
                 e.preventDefault();
@@ -1667,6 +2255,15 @@
                     }
                 } else {
                     const touch = padTouchList[0];
+
+                    // edge-зона: фиксируем позицию, чтобы не было скачка при выходе
+                    if (!isDragging && edgeCheck(touch)) {
+                        lastPos = { x: touch.clientX, y: touch.clientY };
+                        hasMoved = true;
+                        return;
+                    }
+                    edgeStop();
+
                     const dx = touch.clientX - lastPos.x;
                     const dy = touch.clientY - lastPos.y;
 
@@ -1681,8 +2278,9 @@
                             fire('POST', '/api/mouse/down/left');
                         }
 
-                        const moveDx = Math.round(dx * SENS);
-                        const moveDy = Math.round(dy * SENS);
+                        const sens = (uiCfg.settings[sensKey] || 18) / 10;
+                        const moveDx = Math.round(dx * sens);
+                        const moveDy = Math.round(dy * sens);
                         if (moveDx || moveDy) {
                             fire('POST', '/api/mouse/move', { x: moveDx, y: moveDy });
                         }
@@ -1702,6 +2300,7 @@
                 if (remaining === 0) {
                     pad.classList.remove('active', 'dragging');
                     clearTimeout(dragTimer);
+                    edgeStop();
 
                     if (dragStarted) {
                         fire('POST', '/api/mouse/up/left');
@@ -1743,6 +2342,7 @@
                 }
                 if (padTouches.size === 0) {
                     pad.classList.remove('active', 'dragging');
+                    edgeStop();
                     if (dragStarted) {
                         fire('POST', '/api/mouse/up/left');
                     }
@@ -1756,8 +2356,8 @@
             });
         }
 
-        initTouchpad('touchpad');
-        initTouchpad('stream-touchpad');
+        initTouchpad('touchpad', 'mouseSens');
+        initTouchpad('stream-touchpad', 'streamSens');
 
         // ==================== KEYBOARD ====================
         const liveInput = $('#live-input');
@@ -1841,6 +2441,23 @@
 
             streamInput.onfocus = () => streamControls.classList.add('kb-mode');
             streamInput.onblur = () => streamControls.classList.remove('kb-mode');
+
+            // Софтклава на телефоне закрывается кнопкой "назад" без blur'а —
+            // детектим по возвращению высоты visualViewport
+            if (window.visualViewport) {
+                let kbWasOpen = false;
+                window.visualViewport.addEventListener('resize', () => {
+                    const h = window.visualViewport.height;
+                    const open = h < window.innerHeight * 0.9;
+                    if (!kbWasOpen && open) kbWasOpen = true;
+                    else if (kbWasOpen && !open) {
+                        kbWasOpen = false;
+                        if (streamControls.classList.contains('kb-mode')) {
+                            streamControls.classList.remove('kb-mode');
+                        }
+                    }
+                });
+            }
         }
 
         $('#btn-toggle-kb')?.addEventListener('click', () => {
@@ -1856,6 +2473,11 @@
         // ==================== STREAM ====================
         let ws = null;
         let currentZoom = 1;
+        let serverPanX = 0.5, serverPanY = 0.5;
+
+        // Локальный view во время жеста: CSS-transform вместо HTTP-спамa на сервер
+        let viewScale = 1, viewX = 0, viewY = 0, viewActive = false;
+
         const canvas = $('#stream-canvas');
         const ctx = canvas ? canvas.getContext('2d') : null;
         const streamView = $('#stream-view');
@@ -1865,6 +2487,7 @@
             const overlay = $('#stream-overlay');
             if (overlay) { overlay.style.display = 'flex'; overlay.textContent = 'Connecting...'; }
             loadFps();
+            loadQuality();
             const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
             ws = new WebSocket(`${proto}//${location.host}/ws/screen`);
             ws.binaryType = 'arraybuffer';
@@ -1874,18 +2497,12 @@
                 updateZoomLabel();
             };
 
+            // Только последний кадр: старые отбрасываются (отзывчивость, а не история)
             ws.onmessage = e => {
                 if (!ctx) return;
-                const blob = new Blob([e.data], { type: 'image/jpeg' });
-                const url = URL.createObjectURL(blob);
-                const img = new Image();
-                img.onload = () => {
-                    canvas.width = img.width;
-                    canvas.height = img.height;
-                    ctx.drawImage(img, 0, 0);
-                    URL.revokeObjectURL(url);
-                };
-                img.src = url;
+                if (pendingFrame) URL.revokeObjectURL(pendingFrame.url);
+                pendingFrame = { url: URL.createObjectURL(new Blob([e.data], { type: 'image/jpeg' })) };
+                if (!decodingFrame) startDecodeFrame();
             };
 
             ws.onclose = () => {
@@ -1896,9 +2513,47 @@
             ws.onerror = () => { if (ws) ws.close(); };
         }
 
+        // latest-frame: максимум один кадр на декодировании + один в ожидании
+        let pendingFrame = null, decodingFrame = null;
+
+        function startDecodeFrame() {
+            const f = pendingFrame;
+            pendingFrame = null;
+            if (!f) return;
+            decodingFrame = f;
+            const img = new Image();
+            img.onload = () => {
+                if (decodingFrame !== f) { URL.revokeObjectURL(f.url); return; }
+                decodingFrame = null;
+                if (pendingFrame) { startDecodeFrame(); return; } // пришёл более свежий
+                URL.revokeObjectURL(f.url);
+                canvas.width = img.width;
+                canvas.height = img.height;
+                ctx.drawImage(img, 0, 0);
+            };
+            img.onerror = () => {
+                if (decodingFrame !== f) { URL.revokeObjectURL(f.url); return; }
+                decodingFrame = null;
+                URL.revokeObjectURL(f.url);
+                if (pendingFrame) startDecodeFrame();
+            };
+            img.src = f.url;
+        }
+
         function stopStream() {
+            if (pendingFrame) { URL.revokeObjectURL(pendingFrame.url); pendingFrame = null; }
+            if (decodingFrame) { URL.revokeObjectURL(decodingFrame.url); decodingFrame = null; }
             if (ws) { ws.close(); ws = null; }
         }
+
+        // Вкладка браузера скрыта -> рвём сессию, видимая -> подхватываем
+        document.addEventListener('visibilitychange', () => {
+            if (document.hidden) {
+                if (currentTab === 'stream') stopStream();
+            } else {
+                if (currentTab === 'stream' && !ws) startStream();
+            }
+        });
 
         if (streamView) {
             streamView.onclick = e => {
@@ -1936,15 +2591,59 @@
         function updateZoomFromResponse(d) {
             if (d.zoom !== undefined) {
                 currentZoom = d.zoom;
+                if (d.panX !== undefined) serverPanX = d.panX;
+                if (d.panY !== undefined) serverPanY = d.panY;
                 updateZoomLabel();
             }
         }
 
         function updateZoomLabel() {
+            const z = currentZoom * (viewActive ? viewScale : 1);
             const label = $('#zoom-label');
-            if (label) label.textContent = currentZoom.toFixed(1) + 'x';
+            if (label) label.textContent = z.toFixed(1) + 'x';
             const info = $('#stream-info');
-            if (info) info.textContent = currentZoom > 1 ? currentZoom.toFixed(1) + 'x' : '';
+            if (info) info.textContent = z > 1 ? z.toFixed(1) + 'x' : '';
+        }
+
+        function applyView() {
+            if (!canvas) return;
+            if (viewActive) {
+                canvas.style.transform = `translate(${viewX}px, ${viewY}px) scale(${viewScale})`;
+                canvas.style.transformOrigin = '0 0';
+            } else {
+                canvas.style.transform = '';
+            }
+            updateZoomLabel();
+        }
+
+        // В конце жеста: один запрос на сервер (zoom + абсолютный pan атомарно)
+        function commitView() {
+            if (!viewActive || !canvas) return;
+            viewActive = false;
+            applyView();
+
+            const cw = canvas.clientWidth || 1;
+            const ch = canvas.clientHeight || 1;
+            if (Math.abs(viewScale - 1) < 0.02 && Math.abs(viewX) < 3 && Math.abs(viewY) < 3) {
+                viewScale = 1; viewX = 0; viewY = 0;
+                return;
+            }
+
+            // Точка под центром канваса после локального трансформа -> новый центр кадра
+            const cx0 = (cw / 2 - viewX) / viewScale;
+            const cy0 = (ch / 2 - viewY) / viewScale;
+
+            const newZoom = Math.max(1, Math.min(8, currentZoom * viewScale));
+            let newPanX = serverPanX + (cx0 / cw - 0.5) / newZoom;
+            let newPanY = serverPanY + (cy0 / ch - 0.5) / newZoom;
+            const half = 0.5 / newZoom;
+            newPanX = Math.max(half, Math.min(1 - half, newPanX));
+            newPanY = Math.max(half, Math.min(1 - half, newPanY));
+
+            apiS('POST', '/api/screen/zoom', { action: 'set', level: newZoom, panX: newPanX, panY: newPanY })
+                .then(d => { if (d) updateZoomFromResponse(d); });
+
+            viewScale = 1; viewX = 0; viewY = 0;
         }
 
         async function setFps(fps) {
@@ -1971,21 +2670,65 @@
             }
         }
 
-        // Pinch zoom on canvas
+        function toggleFullscreen() {
+            if (document.fullscreenElement) {
+                document.exitFullscreen().catch(() => { });
+            } else {
+                document.documentElement.requestFullscreen().catch(() => { });
+            }
+        }
+
+        async function setQuality(pct, jpeg) {
+            const d = await apiS('POST', '/api/screen/quality', { percent: pct, jpeg });
+            if (d && d.success) {
+                document.getElementById('q-display').textContent = d.percent;
+                localStorage.setItem('streamQuality', d.percent);
+                document.querySelectorAll('.qbtn').forEach(btn => {
+                    btn.classList.remove('btn-primary');
+                    btn.classList.add('btn-dark');
+                });
+                const activeBtn = document.querySelector(`.qbtn[onclick="setQuality(${pct}, ${jpeg})"]`);
+                if (activeBtn) {
+                    activeBtn.classList.remove('btn-dark');
+                    activeBtn.classList.add('btn-primary');
+                }
+                toast('Quality: ' + pct + '%');
+            }
+        }
+
+        async function loadQuality() {
+            const q = parseInt(localStorage.getItem('streamQuality')) || 100;
+            document.getElementById('q-display').textContent = q;
+            const preset = q === 100 ? [100, 0] : q === 75 ? [75, 0] : [50, 35];
+            setQuality(preset[0], preset[1]);
+        }
+
+        // Pinch zoom / pan on canvas — мгновенно на клиенте, коммит на сервер в конце жеста
         if (canvas) {
             let lastTouches = null;
             let lastPinchDist = null;
             let isPanning = false;
 
+            function beginView() {
+                if (!viewActive) {
+                    viewActive = true;
+                    viewScale = 1;
+                    viewX = 0;
+                    viewY = 0;
+                }
+            }
+
             canvas.addEventListener('touchstart', e => {
                 e.preventDefault();
                 if (e.touches.length === 2) {
+                    beginView();
                     lastPinchDist = getPinchDist(e.touches);
                     lastTouches = [
                         { x: e.touches[0].clientX, y: e.touches[0].clientY },
                         { x: e.touches[1].clientX, y: e.touches[1].clientY }
                     ];
-                } else if (e.touches.length === 1 && currentZoom > 1) {
+                } else if (e.touches.length === 1 && (currentZoom > 1 || viewScale > 1.01)) {
+                    beginView();
                     isPanning = true;
                     lastTouches = [{ x: e.touches[0].clientX, y: e.touches[0].clientY }];
                 }
@@ -1996,36 +2739,50 @@
                 if (e.touches.length === 2 && lastPinchDist !== null) {
                     const dist = getPinchDist(e.touches);
                     const scale = dist / lastPinchDist;
-                    if (Math.abs(scale - 1) > 0.05) {
-                        zoomSet(currentZoom * scale);
-                        lastPinchDist = dist;
-                    }
-                    const cx = (e.touches[0].clientX + e.touches[1].clientX) / 2;
-                    const cy = (e.touches[0].clientY + e.touches[1].clientY) / 2;
+                    lastPinchDist = dist;
+
+                    const rect = canvas.getBoundingClientRect();
+                    const cx = (e.touches[0].clientX + e.touches[1].clientX) / 2 - rect.left;
+                    const cy = (e.touches[0].clientY + e.touches[1].clientY) / 2 - rect.top;
+
+                    // зум вокруг середины пинча
+                    const oldS = viewScale;
+                    viewScale = Math.max(0.25, Math.min(4, viewScale * scale));
+                    const ratio = viewScale / oldS;
+                    viewX = cx - (cx - viewX) * ratio;
+                    viewY = cy - (cy - viewY) * ratio;
+
+                    // панорама по движению середины пинча
                     const lastCx = (lastTouches[0].x + lastTouches[1].x) / 2;
                     const lastCy = (lastTouches[0].y + lastTouches[1].y) / 2;
-                    const dx = (lastCx - cx) / canvas.clientWidth;
-                    const dy = (lastCy - cy) / canvas.clientHeight;
-                    if (Math.abs(dx) > 0.01 || Math.abs(dy) > 0.01) {
-                        panBy(dx, dy);
-                    }
+                    viewX += (e.touches[0].clientX + e.touches[1].clientX) / 2 - lastCx;
+                    viewY += (e.touches[0].clientY + e.touches[1].clientY) / 2 - lastCy;
+
                     lastTouches = [
                         { x: e.touches[0].clientX, y: e.touches[0].clientY },
                         { x: e.touches[1].clientX, y: e.touches[1].clientY }
                     ];
+                    applyView();
                 } else if (e.touches.length === 1 && isPanning && lastTouches) {
-                    const dx = (lastTouches[0].x - e.touches[0].clientX) / canvas.clientWidth;
-                    const dy = (lastTouches[0].y - e.touches[0].clientY) / canvas.clientHeight;
-                    if (Math.abs(dx) > 0.01 || Math.abs(dy) > 0.01) {
-                        panBy(dx, dy);
-                        lastTouches = [{ x: e.touches[0].clientX, y: e.touches[0].clientY }];
-                    }
+                    viewX += lastTouches[0].x - e.touches[0].clientX;
+                    viewY += lastTouches[0].y - e.touches[0].clientY;
+                    lastTouches = [{ x: e.touches[0].clientX, y: e.touches[0].clientY }];
+                    applyView();
                 }
             }, { passive: false });
 
             canvas.addEventListener('touchend', e => {
-                if (e.touches.length < 2) lastPinchDist = null;
-                if (e.touches.length === 0) { isPanning = false; lastTouches = null; }
+                if (e.touches.length < 2) {
+                    lastPinchDist = null;
+                    if (e.touches.length === 1) {
+                        lastTouches = [{ x: e.touches[0].clientX, y: e.touches[0].clientY }];
+                    }
+                }
+                if (e.touches.length === 0) {
+                    isPanning = false;
+                    lastTouches = null;
+                    commitView();
+                }
             });
 
             function getPinchDist(touches) {
@@ -2263,22 +3020,97 @@
             if (!area) return;
 
             (layout.customButtons || []).forEach((btn, idx) => {
-                const el = document.createElement('button');
-                el.className = `btn ${btn.color || 'btn-dark'} custom-btn game-element`;
-                el.textContent = btn.label;
+                const isPad = btn.type === 'touchpad1' || btn.type === 'touchpad2';
+                const el = document.createElement(isPad ? 'div' : 'button');
+                el.className = isPad
+                    ? `custom-btn game-element custom-touchpad ${btn.color || 'btn-dark'}`
+                    : `btn ${btn.color || 'btn-dark'} custom-btn game-element`;
+                el.textContent = isPad ? (btn.type === 'touchpad1' ? 'Scroll' : 'Pad') : btn.label;
                 el.style.left = btn.x + 'px';
                 el.style.top = btn.y + 'px';
                 el.style.width = (btn.w || 60) + 'px';
                 el.style.height = (btn.h || 40) + 'px';
                 el.dataset.customIdx = idx;
-                el.innerHTML += '<div class="resize-handle"></div>';
+                el.innerHTML += '<div class="el-handle h-key" data-handle="key">🔑</div><div class="el-handle h-del" data-handle="del">✕</div><div class="resize-handle"></div>';
 
                 if (!editMode) {
-                    initCustomButtonBehavior(el, btn);
+                    if (isPad) initGameTouchpadWidget(el, btn.type === 'touchpad1');
+                    else initCustomButtonBehavior(el, btn);
                 }
 
                 area.appendChild(el);
             });
+        }
+
+        // Тачпад-элементы: 1 ось = скролл, 2 оси = мышь; edge-зоны из настроек гейма
+        function initGameTouchpadWidget(el, oneAxis) {
+            let pid = null, lastX = 0, lastY = 0;
+            let edgeTimer = null, edgeEx = 0, edgeEy = 0;
+
+            function stopEdge() {
+                if (edgeTimer) { clearInterval(edgeTimer); edgeTimer = null; }
+                el.classList.remove('edge-active');
+            }
+
+            el.addEventListener('pointerdown', e => {
+                if (editMode) return;
+                e.preventDefault();
+                el.setPointerCapture(e.pointerId);
+                pid = e.pointerId;
+                lastX = e.clientX;
+                lastY = e.clientY;
+            });
+
+            el.addEventListener('pointermove', e => {
+                if (pid !== e.pointerId || editMode) return;
+                const dx = e.clientX - lastX;
+                const dy = e.clientY - lastY;
+                lastX = e.clientX;
+                lastY = e.clientY;
+
+                const gs = gameSettings;
+                if (gs.edgeZone) {
+                    const r = el.getBoundingClientRect();
+                    if (r.width && r.height) {
+                        const nx = (e.clientX - r.left) / r.width;
+                        const ny = (e.clientY - r.top) / r.height;
+                        const edge = gs.edgeSize / 100;
+                        let ex = 0, ey = 0;
+                        if (nx < edge) ex = -gs.edgeSpeed;
+                        else if (nx > 1 - edge) ex = gs.edgeSpeed;
+                        if (ny < edge) ey = -gs.edgeSpeed;
+                        else if (ny > 1 - edge) ey = gs.edgeSpeed;
+
+                        if (ex || ey) {
+                            if (ex !== edgeEx || ey !== edgeEy || !edgeTimer) {
+                                edgeEx = ex; edgeEy = ey;
+                                if (edgeTimer) clearInterval(edgeTimer);
+                                edgeTimer = setInterval(() => mouseMove(edgeEx, edgeEy), 16);
+                                el.classList.add('edge-active');
+                            }
+                            return;
+                        }
+                    }
+                    stopEdge();
+                }
+
+                const sens = gs.camSens / 10;
+                if (oneAxis) {
+                    if (dy) mouseWheel(Math.round(-dy * 3));
+                } else {
+                    const mx = Math.round(dx * sens), my = Math.round(dy * sens);
+                    if (mx || my) mouseMove(mx, my);
+                }
+            });
+
+            const up = e => {
+                if (pid === e.pointerId) {
+                    pid = null;
+                    stopEdge();
+                }
+            };
+            el.addEventListener('pointerup', up);
+            el.addEventListener('pointercancel', up);
         }
 
         function initCustomButtonBehavior(el, btn) {
@@ -2335,23 +3167,150 @@
             }
         }
 
+        // ==================== ELEMENT OPTIONS ====================
+        let lastTap = null; // { el, t }
+        const initedEls = new WeakSet();
+
+        function selectElement(el) {
+            document.querySelectorAll('.game-element.selected').forEach(x => {
+                if (x !== el) x.classList.remove('selected');
+            });
+            if (el) el.classList.add('selected');
+            hideElementOptions();
+        }
+
+        function showElementOptions(el) {
+            hideElementOptions();
+            const area = document.getElementById('game-area');
+            if (!area) return;
+
+            const panel = document.createElement('div');
+            panel.className = 'el-options';
+            panel.id = 'el-options-panel';
+            const isCustom = el.dataset.customIdx !== undefined;
+
+            if (isCustom) {
+                panel.innerHTML = '<button data-act="key">🔑 Key</button><button data-act="resize">↔ Resize</button><button data-act="del" class="danger">✕ Del</button>';
+            } else {
+                panel.innerHTML = '<button data-act="resize">↔ Resize</button>';
+            }
+
+            panel.addEventListener('pointerdown', e => e.stopPropagation());
+            panel.addEventListener('click', e => {
+                const act = e.target && e.target.dataset && e.target.dataset.act;
+                if (!act) return;
+                e.stopPropagation();
+                if (act === 'key') changeElementKey(el);
+                else if (act === 'resize') openResizeForm(el);
+                else if (act === 'del') deleteGameElement(el);
+            });
+
+            const ar = area.getBoundingClientRect();
+            const er = el.getBoundingClientRect();
+            panel.style.left = Math.max(4, Math.min(er.left - ar.left, ar.width - 140)) + 'px';
+            panel.style.top = '9999px';
+            area.appendChild(panel);
+            requestAnimationFrame(() => {
+                let top = er.top - ar.top - panel.offsetHeight - 8;
+                if (top < 4) top = er.bottom - ar.top + 8;
+                panel.style.top = top + 'px';
+            });
+        }
+
+        function hideElementOptions() {
+            document.getElementById('el-options-panel')?.remove();
+        }
+
+        function changeElementKey(el) {
+            if (el.dataset.customIdx === undefined) return;
+            const idx = parseInt(el.dataset.customIdx);
+            const btn = layout.customButtons[idx];
+            if (!btn) return;
+            const a = prompt('Key / action:', btn.action);
+            if (a !== null && a.trim()) {
+                btn.action = a.trim();
+                renderCustomButtons();
+                toast('Action: ' + btn.action);
+            }
+        }
+
+        function deleteGameElement(el) {
+            if (el.dataset.customIdx === undefined) {
+                toast('Built-in element — can\'t delete');
+                return;
+            }
+            if (!confirm('Delete this element?')) return;
+            layout.customButtons.splice(parseInt(el.dataset.customIdx), 1);
+            hideElementOptions();
+            renderCustomButtons();
+        }
+
+        function openResizeForm(el) {
+            const w = Math.round(el.offsetWidth);
+            const h = Math.round(el.offsetHeight);
+            const square = el.dataset.square === '1';
+
+            const val = prompt(square ? 'Size (px):' : 'Width × Height (e.g. 240×120):', square ? String(w) : `${w}×${h}`);
+            if (val === null) return;
+            val = val.trim().replace(',', '×').replace('*', '×');
+
+            let nw = w, nh = h;
+            if (square) {
+                const s = parseInt(val);
+                if (!isNaN(s)) nw = nh = s;
+            } else {
+                const m = val.match(/(\d+)\s*[x×]\s*(\d+)/i);
+                if (m) { nw = parseInt(m[1]); nh = parseInt(m[2]); }
+                else {
+                    const n = parseInt(val);
+                    if (!isNaN(n)) nw = nh = n;
+                }
+            }
+            nw = Math.max(MIN_SIZE, nw);
+            nh = Math.max(MIN_SIZE, nh);
+            el.style.width = nw + 'px';
+            el.style.height = nh + 'px';
+
+            if (el.dataset.el && layout[el.dataset.el]) {
+                layout[el.dataset.el] = { ...layout[el.dataset.el], w: nw, h: nh };
+            } else if (el.dataset.customIdx !== undefined) {
+                const b = layout.customButtons[parseInt(el.dataset.customIdx)];
+                if (b) { b.w = nw; b.h = nh; }
+            }
+            toast('Resized');
+        }
+
         function initDragResize() {
             const area = document.getElementById('game-area');
             if (!area) return;
 
             area.querySelectorAll('.game-element').forEach(el => {
+                if (initedEls.has(el)) return; // не регистрируем повторно
+                initedEls.add(el);
+
                 let mode = null;
                 let startX, startY, startW, startH, startL, startT;
+                let moved = false, downTime = 0;
                 const isSquare = el.dataset.square === '1';
                 const elKey = el.dataset.el;
                 const customIdx = el.dataset.customIdx;
-                const handle = el.querySelector('.resize-handle');
 
                 el.addEventListener('pointerdown', e => {
                     if (!editMode) return;
                     e.preventDefault();
                     e.stopPropagation();
                     el.setPointerCapture(e.pointerId);
+
+                    // боковые хэндлы: key / del
+                    for (const h of el.querySelectorAll('.el-handle')) {
+                        const hr = h.getBoundingClientRect();
+                        if (e.clientX >= hr.left - 8 && e.clientX <= hr.right + 8 &&
+                            e.clientY >= hr.top - 8 && e.clientY <= hr.bottom + 8) {
+                            if (h.dataset.handle === 'key') changeElementKey(el);
+                            else if (h.dataset.handle === 'del') deleteGameElement(el);
+                            return;
+                        }
+                    }
 
                     const rect = el.getBoundingClientRect();
                     startX = e.clientX;
@@ -2360,15 +3319,19 @@
                     startT = parseInt(el.style.top) || 0;
                     startW = rect.width;
                     startH = rect.height;
+                    moved = false;
+                    downTime = Date.now();
 
-                    if (handle) {
-                        const hr = handle.getBoundingClientRect();
-                        if (e.clientX >= hr.left && e.clientY >= hr.top) {
-                            mode = 'resize';
-                            return;
-                        }
+                    selectElement(el);
+
+                    const rh = el.querySelector('.resize-handle')?.getBoundingClientRect();
+                    if (rh && e.clientX >= rh.left - 6 && e.clientY >= rh.top - 6 &&
+                        e.clientX <= rh.right + 10 && e.clientY <= rh.bottom + 10) {
+                        mode = 'resize';
+                        el.classList.add('resizing');
+                    } else {
+                        mode = 'move';
                     }
-                    mode = 'move';
                 });
 
                 el.addEventListener('pointermove', e => {
@@ -2377,6 +3340,7 @@
 
                     const dx = e.clientX - startX;
                     const dy = e.clientY - startY;
+                    if (!moved && Math.hypot(dx, dy) > 6) moved = true;
 
                     if (mode === 'move') {
                         el.style.left = Math.max(0, startL + dx) + 'px';
@@ -2395,9 +3359,9 @@
                     }
                 });
 
-                const endDrag = e => {
+                const endDrag = () => {
                     if (!mode) return;
-                    e.preventDefault();
+                    const wasResize = mode === 'resize';
 
                     const x = parseInt(el.style.left) || 0;
                     const y = parseInt(el.style.top) || 0;
@@ -2415,27 +3379,34 @@
                     }
 
                     mode = null;
+                    el.classList.remove('resizing');
+
+                    // тап / двойной тап: без движения, короткое нажатие
+                    if (!wasResize && !moved && Date.now() - downTime < 400) {
+                        const now = Date.now();
+                        if (lastTap && lastTap.el === el && now - lastTap.t < 350) {
+                            lastTap = null;
+                            selectElement(el);
+                            showElementOptions(el);
+                        } else {
+                            lastTap = { el, t: now };
+                        }
+                    }
                 };
 
                 el.addEventListener('pointerup', endDrag);
-                el.addEventListener('pointercancel', endDrag);
-
-                if (customIdx !== undefined) {
-                    let longPress = null;
-                    el.addEventListener('pointerdown', () => {
-                        longPress = setTimeout(() => {
-                            if (confirm('Delete this button?')) {
-                                layout.customButtons.splice(parseInt(customIdx), 1);
-                                renderCustomButtons();
-                                initDragResize();
-                            }
-                        }, 800);
-                    });
-                    el.addEventListener('pointerup', () => clearTimeout(longPress));
-                    el.addEventListener('pointermove', () => clearTimeout(longPress));
-                }
+                el.addEventListener('pointercancel', () => { mode = null; el.classList.remove('resizing'); });
             });
         }
+
+        // тап по пустому месту — снять выделение и закрыть панель (один раз)
+        document.getElementById('game-area')?.addEventListener('pointerdown', e => {
+            if (!editMode) return;
+            if (!e.target.closest('.game-element') && !e.target.closest('.el-options')) {
+                selectElement(null);
+                hideElementOptions();
+            }
+        });
 
         // ==================== GAME UI BINDINGS ====================
         function openGameSettings() {
@@ -2814,12 +3785,699 @@
             cam.addEventListener('pointercancel', up);
         })();
 
+        // ==================== MONITOR (ControlMyMonitor / DDC/CI) ====================
+        let monTimeout;
+
+        function setMonitorBrightnessUI(v, max) {
+            max = max || 100;
+            const s = $('#mon-brightness-slider');
+            s.max = max;
+            s.value = v;
+            s.style.setProperty('--val', Math.min(100, v / max * 100) + '%');
+            $('#mon-brightness-val').textContent = v + '%';
+        }
+
+        async function updateMonitor() {
+            const d = await apiS('GET', '/api/monitor/state');
+            if (!d) return;
+            $('#mon-unavailable').style.display = d.available ? 'none' : 'block';
+            if (d.monitor) $('#mon-name').textContent = d.monitor;
+
+            if (d.brightness != null) {
+                setMonitorBrightnessUI(d.brightness, d.brightnessMax);
+                $('#mon-brightness-input').value = d.brightness;
+            }
+
+            const st = $('#mon-power');
+            if (d.powerKnown) {
+                st.textContent = d.powerOn ? 'Power: on' : 'Power: off (standby)';
+                st.classList.toggle('on', d.powerOn);
+            } else if (d.available) {
+                st.textContent = 'Power: --';
+                st.classList.remove('on');
+            }
+        }
+
+        $('#mon-brightness-slider').oninput = function () {
+            const v = parseInt(this.value);
+            const max = parseInt(this.max) || 100;
+            $('#mon-brightness-val').textContent = v + '%';
+            $('#mon-brightness-input').value = v;
+            this.style.setProperty('--val', Math.min(100, v / max * 100) + '%');
+            clearTimeout(monTimeout);
+            monTimeout = setTimeout(() => apiS('POST', '/api/monitor/brightness', { level: v }), 150);
+        };
+
+        async function applyMonitorBrightness() {
+            const inp = $('#mon-brightness-input');
+            let v = parseInt(inp.value);
+            if (isNaN(v)) return;
+            const max = parseInt($('#mon-brightness-slider').max) || 100;
+            v = Math.max(0, Math.min(max, v));
+            inp.value = v;
+            setMonitorBrightnessUI(v, max);
+            const d = await apiS('POST', '/api/monitor/brightness', { level: v });
+            if (d && d.brightness != null) setMonitorBrightnessUI(d.brightness, max);
+        }
+
+        $('#mon-brightness-input').addEventListener('keydown', e => {
+            if (e.key === 'Enter') applyMonitorBrightness();
+        });
+
+        async function monPower(action) {
+            toast(action === 'on' ? 'Turning on...' : action === 'off' ? 'Turning off...' : 'Switching...');
+            await api('POST', '/api/monitor/power', { action }, true);
+            setTimeout(updateMonitor, 800);
+        }
+
+        // ==================== UI CONFIG (вкладки / настройки / виджеты) ====================
+        const UI_DEFAULTS = {
+            tabs: { mouse: { inDropdown: true }, settings: { inDropdown: true } },
+            settings: { mouseSens: 18, streamSens: 18, edgeEnabled: true, edgeSize: 10, edgeSpeed: 30 },
+            widgets: { main: [], monitor: [], mouse: [], keys: [] }
+        };
+        let uiCfg = JSON.parse(JSON.stringify(UI_DEFAULTS));
+
+        async function loadUiConfig() {
+            const d = await apiS('GET', '/api/ui');
+            if (d && d.success && d.config) {
+                const c = d.config;
+                uiCfg.tabs = Object.assign({}, UI_DEFAULTS.tabs, c.tabs || {});
+                uiCfg.settings = Object.assign({}, UI_DEFAULTS.settings, c.settings || {});
+                uiCfg.widgets = Object.assign({}, UI_DEFAULTS.widgets, c.widgets || {});
+            }
+            renderTabs();
+            renderCustomWidgets();
+            renderSettingsAll();
+            applyPadEdgeSize();
+        }
+
+        async function saveUiConfig() {
+            const d = await apiS('POST', '/api/ui', { config: uiCfg });
+            if (!(d && d.success)) console.error('ui save failed');
+            return d;
+        }
+
+        let uiSaveTimer = null;
+        function saveUiConfigSoon() {
+            clearTimeout(uiSaveTimer);
+            uiSaveTimer = setTimeout(saveUiConfig, 300);
+        }
+
+        // ==================== WIDGETS ====================
+        const WIDGET_TABS = ['main', 'monitor', 'mouse', 'keys'];
+
+        function actionFor(w) {
+            if (!w.action) return null;
+            if (w.action.startsWith('/api/')) return { kind: 'api', path: w.action };
+            if (w.action.includes('+')) return { kind: 'combo', keys: w.action.split('+').map(s => s.trim()).filter(Boolean) };
+            return { kind: 'key', key: w.action };
+        }
+
+        function fireAction(a) {
+            if (!a) return;
+            if (a.kind === 'api') fire('POST', a.path);
+            else if (a.kind === 'combo') fire('POST', '/api/combo', { keys: a.keys, delay: 25 });
+            else keyPress(a.key);
+        }
+
+        function newWidget(type) {
+            const base = { id: Math.random().toString(36).substring(2, 10), type, label: '', x: 5, y: 5, w: 30, h: 15 };
+            switch (type) {
+                case 'button': Object.assign(base, { action: 'enter', pressMode: 'click', repeatCount: 3, repeatInterval: 80, color: 'btn-primary' }); break;
+                case 'touchpad': Object.assign(base, { axes: 2, edgeZone: true, sensitivity: 0, w: 35, h: 35 }); break;
+                case 'sequence': Object.assign(base, { steps: [{ kind: 'key', value: 'f5', delay: 100 }] }); break;
+                case 'slider': Object.assign(base, { binding: 'volume', min: 0, max: 100 }); break;
+                case 'toggle': Object.assign(base, { binding: 'power' }); break;
+                case 'input': Object.assign(base, { label: 'Text', h: 12 }); break;
+            }
+            return base;
+        }
+
+        function createWidgetEl(w, isPreview) {
+            const el = document.createElement('div');
+            el.className = 'widget widget-' + w.type;
+            el.style.left = w.x + '%';
+            el.style.top = w.y + '%';
+            el.style.width = w.w + '%';
+            el.style.height = w.h + '%';
+            el.dataset.wid = w.id;
+
+            switch (w.type) {
+                case 'button':
+                case 'sequence': {
+                    el.classList.add('btn', w.color || 'btn-primary');
+                    el.textContent = w.label || (w.type === 'sequence' ? '▶ Seq' : w.action || 'Btn');
+                    if (!isPreview) initWidgetBehavior(w, el);
+                    break;
+                }
+                case 'touchpad': {
+                    el.classList.add('widget-touchpad');
+                    el.textContent = (w.axes === 1 ? 'Scroll' : 'Pad') + (w.edgeZone === false ? '' : ' · edge');
+                    if (!isPreview) initTouchpadWidget(w, el);
+                    break;
+                }
+                case 'slider': {
+                    el.classList.add('widget-slider');
+                    el.innerHTML = `<span class="widget-val">${w.label || w.binding}</span><input type="range" min="${w.min ?? 0}" max="${w.max ?? 100}" step="1">`;
+                    if (!isPreview) initSliderWidget(w, el);
+                    break;
+                }
+                case 'toggle': {
+                    el.classList.add('btn', 'btn-dark', 'widget-toggle');
+                    el.textContent = w.label || w.binding || 'toggle';
+                    if (!isPreview) initToggleWidget(w, el);
+                    break;
+                }
+                case 'input': {
+                    el.classList.add('widget-input');
+                    el.innerHTML = `<input placeholder="${w.label || 'Text'}" ${isPreview ? 'readonly' : ''}>`;
+                    if (!isPreview) initInputWidget(el);
+                    break;
+                }
+            }
+            return el;
+        }
+
+        function renderCustomWidgets() {
+            WIDGET_TABS.forEach(tab => {
+                const area = document.getElementById('custom-area-' + tab);
+                if (!area) return;
+                area.innerHTML = '';
+                (uiCfg.widgets[tab] || []).forEach(w => area.appendChild(createWidgetEl(w, false)));
+            });
+            renderWidgetPreview();
+        }
+
+        // --- поведения виджетов ---
+        function initWidgetBehavior(w, el) {
+            const a = actionFor(w);
+
+            if (w.type === 'sequence') {
+                el.addEventListener('click', () => runSequence(w));
+                return;
+            }
+
+            if (w.pressMode === 'hold') {
+                el.addEventListener('pointerdown', () => {
+                    if (a && a.kind === 'key') keyDown(a.key);
+                    el.classList.add('btn-on');
+                });
+                const up = () => {
+                    if (a && a.kind === 'key') keyUp(a.key);
+                    el.classList.remove('btn-on');
+                };
+                el.addEventListener('pointerup', up);
+                el.addEventListener('pointercancel', up);
+            } else if (w.pressMode === 'repeat') {
+                el.addEventListener('click', () => {
+                    const n = w.repeatCount || 3, iv = w.repeatInterval || 80;
+                    for (let i = 0; i < n; i++) setTimeout(() => fireAction(a), i * iv);
+                });
+            } else {
+                el.addEventListener('click', () => fireAction(a));
+            }
+        }
+
+        function runSequence(w) {
+            let t = 0;
+            (w.steps || []).forEach(s => {
+                setTimeout(() => {
+                    if (s.kind === 'key') fireAction({ kind: 'key', key: s.value });
+                    else if (s.kind === 'combo') fireAction({ kind: 'combo', keys: s.value.split('+').map(x => x.trim()).filter(Boolean) });
+                    else if (s.kind === 'type') apiS('POST', '/api/type', { text: s.value });
+                    // pause — ничего
+                }, t);
+                t += s.delay || 50;
+            });
+        }
+
+        function initTouchpadWidget(w, el) {
+            let pid = null, lastX = 0, lastY = 0;
+            let edgeTimer = null, edgeEx = 0, edgeEy = 0;
+            const stopEdge = () => { if (edgeTimer) { clearInterval(edgeTimer); edgeTimer = null; } el.classList.remove('edge-active'); };
+
+            el.addEventListener('pointerdown', e => {
+                e.preventDefault();
+                el.setPointerCapture(e.pointerId);
+                pid = e.pointerId;
+                lastX = e.clientX;
+                lastY = e.clientY;
+            });
+
+            el.addEventListener('pointermove', e => {
+                if (pid !== e.pointerId) return;
+                const dx = e.clientX - lastX, dy = e.clientY - lastY;
+                lastX = e.clientX; lastY = e.clientY;
+
+                const st = uiCfg.settings;
+                if (w.edge !== false && st.edgeEnabled) {
+                    const r = el.getBoundingClientRect();
+                    if (r.width && r.height) {
+                        const nx = (e.clientX - r.left) / r.width, ny = (e.clientY - r.top) / r.height;
+                        const edge = (st.edgeSize || 10) / 100;
+                        const sp = st.edgeSpeed || 30;
+                        let ex = 0, ey = 0;
+                        if (nx < edge) ex = -sp; else if (nx > 1 - edge) ex = sp;
+                        if (ny < edge) ey = -sp; else if (ny > 1 - edge) ey = sp;
+                        if (ex || ey) {
+                            if (ex !== edgeEx || ey !== edgeEy || !edgeTimer) {
+                                edgeEx = ex; edgeEy = ey;
+                                if (edgeTimer) clearInterval(edgeTimer);
+                                edgeTimer = setInterval(() => mouseMove(edgeEx, edgeEy), 16);
+                                el.classList.add('edge-active');
+                            }
+                            return;
+                        }
+                    }
+                    stopEdge();
+                }
+
+                if (w.axes === 1) {
+                    if (dy) mouseWheel(Math.round(-dy * 3));
+                } else {
+                    const sens = (w.sensitivity || uiCfg.settings.mouseSens || 18) / 10;
+                    const mx = Math.round(dx * sens), my = Math.round(dy * sens);
+                    if (mx || my) mouseMove(mx, my);
+                }
+            });
+
+            const up = e => { if (pid === e.pointerId) { pid = null; stopEdge(); } };
+            el.addEventListener('pointerup', up);
+            el.addEventListener('pointercancel', up);
+        }
+
+        function initSliderWidget(w, el) {
+            const range = el.querySelector('input[type=range]');
+            const val = el.querySelector('.widget-val');
+            let t = null;
+            range.oninput = () => {
+                val.textContent = w.label ? `${w.label}: ${range.value}` : range.value;
+                clearTimeout(t);
+                t = setTimeout(() => sliderApply(w, parseInt(range.value)), 150);
+            };
+            sliderRefresh(w, el);
+        }
+
+        async function sliderApply(w, v) {
+            if (w.binding === 'volume') await apiS('POST', '/api/volume/set', { level: v });
+            else if (w.binding === 'brightness') await apiS('POST', '/api/monitor/brightness', { level: v });
+            else if (w.binding === 'zoom') await apiS('POST', '/api/screen/zoom', { action: 'set', level: v });
+            else if (w.binding === 'fps') await apiS('POST', '/api/screen/fps', { fps: v });
+        }
+
+        async function sliderRefresh(w, el) {
+            let v = null;
+            if (w.binding === 'volume') { const d = await apiS('GET', '/api/volume'); v = d ? d.volume : null; }
+            else if (w.binding === 'brightness') { const d = await apiS('GET', '/api/monitor/state'); v = d ? d.brightness : null; }
+            if (v != null && el.isConnected) {
+                el.querySelector('input[type=range]').value = v;
+                const val = el.querySelector('.widget-val');
+                if (val) val.textContent = w.label ? `${w.label}: ${v}` : v;
+            }
+        }
+
+        function refreshWidgetSliders() {
+            const area = document.getElementById('custom-area-' + currentTab);
+            if (!area) return;
+            (uiCfg.widgets[currentTab] || []).forEach(w => {
+                if (w.type !== 'slider') return;
+                const el = area.querySelector(`.widget[data-wid="${w.id}"]`);
+                if (el) sliderRefresh(w, el);
+            });
+        }
+
+        function initToggleWidget(w, el) {
+            const upd = async () => {
+                let on = false;
+                if (w.binding === 'power') { const d = await apiS('GET', '/api/monitor/state'); on = d ? d.powerOn === true : false; }
+                else if (w.binding === 'wg') { const d = await apiS('GET', '/api/wg/status'); on = d ? d.status === 'Running' : false; }
+                if (el.isConnected) {
+                    el.classList.toggle('btn-on', on);
+                    el.textContent = (w.label || w.binding || 'toggle') + (on ? ' ●' : ' ○');
+                }
+            };
+            upd();
+            el.addEventListener('click', async () => {
+                if (w.binding === 'power') await apiS('POST', '/api/monitor/power', { action: 'toggle' });
+                else if (w.binding === 'wg') await apiS('POST', '/api/wg/toggle');
+                setTimeout(upd, 800);
+            });
+        }
+
+        function initInputWidget(el) {
+            const inp = el.querySelector('input');
+            const send = () => {
+                const v = inp.value.trim();
+                if (v) { apiS('POST', '/api/type', { text: v }); inp.value = ''; }
+            };
+            inp.addEventListener('keydown', e => { if (e.key === 'Enter') send(); });
+            inp.addEventListener('blur', send);
+        }
+
+        // ==================== WIDGET EDITOR (settings tab) ====================
+        let widgetEditTab = 'main';
+        let selectedWidgetId = null;
+
+        function currentWidgets() {
+            return uiCfg.widgets[widgetEditTab] || (uiCfg.widgets[widgetEditTab] = []);
+        }
+
+        function renderSettingsAll() {
+            renderTabsRows();
+            renderStreamSettings();
+            renderWidgetEditor();
+        }
+
+        function renderTabsRows() {
+            const rows = $('#tabs-rows');
+            if (!rows) return;
+            rows.innerHTML = '';
+            allTabDefs().forEach(t => {
+                const tc = uiCfg.tabs[t.id] || (uiCfg.tabs[t.id] = {});
+                const row = document.createElement('div');
+                row.className = 'settings-row';
+
+                const label = document.createElement('span');
+                label.textContent = t.label;
+
+                const bHide = document.createElement('button');
+                bHide.className = 'btn btn-sm ' + (tc.visible === false ? 'btn-warning' : 'btn-dark');
+                bHide.textContent = tc.visible === false ? 'Show' : 'Hide';
+                bHide.onclick = () => { tc.visible = tc.visible === false ? true : false; persistTabs(); };
+
+                const bDrop = document.createElement('button');
+                bDrop.className = 'btn btn-sm ' + (tc.inDropdown ? 'btn-primary' : 'btn-dark');
+                bDrop.textContent = tc.inDropdown ? '⋯' : 'Bar';
+                bDrop.onclick = () => { tc.inDropdown = !tc.inDropdown; persistTabs(); };
+
+                row.append(label, bHide, bDrop);
+                rows.appendChild(row);
+            });
+        }
+
+        function persistTabs() {
+            saveUiConfig().then(() => { renderTabs(); renderTabsRows(); });
+        }
+
+        function applyPadEdgeSize() {
+            const s = uiCfg.settings;
+            document.querySelectorAll('.touchpad .pad-edge-zone').forEach(z => {
+                z.style.setProperty('--edge-size', (s.edgeSize || 10) + '%');
+            });
+        }
+
+        function renderStreamSettings() {
+            const s = uiCfg.settings;
+            const bindRange = (id, valId, value, fmt, onChange) => {
+                const el = document.getElementById(id);
+                if (!el) return;
+                el.value = value;
+                document.getElementById(valId).textContent = fmt(value);
+                el.oninput = () => {
+                    const v = parseInt(el.value);
+                    document.getElementById(valId).textContent = fmt(v);
+                    onChange(v);
+                    saveUiConfigSoon();
+                };
+            };
+            bindRange('set-mouse-sens', 'set-mouse-sens-val', s.mouseSens, v => (v / 10).toFixed(1) + 'x', v => { s.mouseSens = v; });
+            bindRange('set-stream-sens', 'set-stream-sens-val', s.streamSens, v => (v / 10).toFixed(1) + 'x', v => { s.streamSens = v; });
+            bindRange('set-edge-size', 'set-edge-size-val', s.edgeSize, v => v + '%', v => { s.edgeSize = v; applyPadEdgeSize(); });
+            bindRange('set-edge-speed', 'set-edge-speed-val', s.edgeSpeed, v => String(v), v => { s.edgeSpeed = v; });
+            const cb = $('#set-edge-on');
+            if (cb) {
+                cb.checked = s.edgeEnabled !== false;
+                cb.onchange = () => { s.edgeEnabled = cb.checked; saveUiConfig(); };
+            }
+        }
+
+        function renderWidgetEditor() {
+            const sel = $('#widget-tab-sel');
+            if (!sel) return;
+            WIDGET_TABS.forEach(t => { if (!uiCfg.widgets[t]) uiCfg.widgets[t] = []; });
+            if (!sel.dataset.init) {
+                sel.innerHTML = WIDGET_TABS.map(t => `<option value="${t}">${t}</option>`).join('');
+                sel.onchange = () => {
+                    widgetEditTab = sel.value;
+                    selectedWidgetId = null;
+                    renderWidgetPreview();
+                    renderWidgetForm();
+                };
+                sel.dataset.init = '1';
+            }
+            renderWidgetPreview();
+            renderWidgetForm();
+        }
+
+        function addWidget() {
+            const types = ['button', 'touchpad', 'sequence', 'slider', 'toggle', 'input'];
+            const type = prompt('Type: ' + types.join(', '), 'button');
+            if (!type || !types.includes(type)) return;
+            const w = newWidget(type);
+            currentWidgets().push(w);
+            selectedWidgetId = w.id;
+            renderCustomWidgets();
+            renderWidgetPreview();
+            renderWidgetForm();
+            saveUiConfigSoon();
+        }
+
+        function deleteSelectedWidget() {
+            const list = currentWidgets();
+            const idx = list.findIndex(w => w.id === selectedWidgetId);
+            if (idx < 0) { toast('Select an element first'); return; }
+            if (!confirm('Delete the element?')) return;
+            list.splice(idx, 1);
+            selectedWidgetId = null;
+            renderCustomWidgets();
+            renderWidgetPreview();
+            renderWidgetForm();
+            saveUiConfig();
+        }
+
+        function renderWidgetPreview() {
+            const area = $('#widget-preview');
+            if (!area) return;
+            area.innerHTML = '';
+            currentWidgets().forEach(w => {
+                const el = createWidgetEl(w, true);
+                el.classList.add('widget-editable');
+                area.appendChild(el);
+                initPreviewDrag(w, el, area);
+            });
+        }
+
+        function initPreviewDrag(w, el, area) {
+            let pid = null, startX = 0, startY = 0, startLeft = 0, startTop = 0, moved = false;
+
+            el.addEventListener('pointerdown', e => {
+                e.preventDefault();
+                el.setPointerCapture(e.pointerId);
+                pid = e.pointerId;
+                startX = e.clientX; startY = e.clientY;
+                startLeft = w.x; startTop = w.y;
+                moved = false;
+                selectedWidgetId = w.id;
+            });
+
+            el.addEventListener('pointermove', e => {
+                if (pid !== e.pointerId) return;
+                if (Math.abs(e.clientX - startX) + Math.abs(e.clientY - startY) > 4) moved = true;
+                const r = area.getBoundingClientRect();
+                w.x = Math.round(Math.max(0, Math.min(100 - w.w, startLeft + (e.clientX - startX) / r.width * 100)));
+                w.y = Math.round(Math.max(0, Math.min(100 - w.h, startTop + (e.clientY - startY) / r.height * 100)));
+                el.style.left = w.x + '%';
+                el.style.top = w.y + '%';
+            });
+
+            const up = e => {
+                if (pid !== e.pointerId) return;
+                pid = null;
+                if (moved) saveUiConfigSoon();
+                else { renderWidgetForm(); }
+            };
+            el.addEventListener('pointerup', up);
+            el.addEventListener('pointercancel', up);
+        }
+
+        function renderWidgetForm() {
+            const form = $('#widget-form');
+            if (!form) return;
+            form.innerHTML = '';
+            const w = currentWidgets().find(x => x.id === selectedWidgetId);
+            if (!w) return;
+
+            const reRender = () => setTimeout(() => {
+                renderWidgetPreview();
+                renderWidgetForm();
+                saveUiConfigSoon();
+            }, 50);
+
+            const addField = (label, input) => {
+                const row = document.createElement('div');
+                row.className = 'settings-row widget-form-row';
+                const s = document.createElement('span');
+                s.textContent = label;
+                row.append(s, input);
+                form.appendChild(row);
+            };
+            const mkInput = (value, oncommit) => {
+                const i = document.createElement('input');
+                i.className = 'cfg-mini';
+                i.value = value;
+                i.addEventListener('change', () => oncommit(i.value));
+                return i;
+            };
+            const mkNum = (value, oncommit) => {
+                const i = mkInput(value, v => oncommit(parseInt(v) || 0));
+                i.type = 'number';
+                return i;
+            };
+            const mkSelect = (options, value, oncommit) => {
+                const i = document.createElement('select');
+                i.className = 'cfg-mini';
+                options.forEach(o => {
+                    const op = document.createElement('option');
+                    op.value = o;
+                    op.textContent = o;
+                    if (o === value) op.selected = true;
+                    i.appendChild(op);
+                });
+                i.addEventListener('change', () => oncommit(i.value));
+                return i;
+            };
+
+            addField('Label', mkInput(w.label || '', v => { w.label = v; reRender(); }));
+            addField('X %', mkNum(w.x, v => { w.x = v; reRender(); }));
+            addField('Y %', mkNum(w.y, v => { w.y = v; reRender(); }));
+            addField('W %', mkNum(w.w, v => { w.w = Math.max(5, v); reRender(); }));
+            addField('H %', mkNum(w.h, v => { w.h = Math.max(5, v); reRender(); }));
+
+            if (w.type === 'button') {
+                addField('Action', mkInput(w.action || '', v => { w.action = v; reRender(); }));
+                addField('Mode', mkSelect(['click', 'hold', 'repeat'], w.pressMode || 'click', v => { w.pressMode = v; reRender(); }));
+                addField('Repeat N', mkNum(w.repeatCount || 3, v => { w.repeatCount = Math.max(1, v); }));
+                addField('Interval ms', mkNum(w.repeatInterval || 80, v => { w.repeatInterval = Math.max(10, v); }));
+                addField('Color', mkSelect(['btn-primary', 'btn-dark', 'btn-warning', 'btn-danger', 'btn-success'], w.color || 'btn-primary', v => { w.color = v; reRender(); }));
+            } else if (w.type === 'touchpad') {
+                addField('Axes', mkSelect(['1', '2'], String(w.axes || 2), v => { w.axes = parseInt(v); reRender(); }));
+                addField('Edge zone', mkSelect(['on', 'off'], w.edgeZone === false ? 'off' : 'on', v => { w.edgeZone = v === 'on'; reRender(); }));
+                addField('Sens (0=global)', mkNum(w.sensitivity || 0, v => { w.sensitivity = v; }));
+            } else if (w.type === 'sequence') {
+                const ta = document.createElement('textarea');
+                ta.className = 'cfg-mini steps-area';
+                ta.value = (w.steps || []).map(s => [s.kind, s.value, s.delay].join(' ')).join('\n');
+                ta.placeholder = 'key e 100\ntype hello 200\ncombo ctrl+c 100\npause 500';
+                ta.addEventListener('change', () => {
+                    w.steps = ta.value.split('\n').map(line => {
+                        line = line.trim();
+                        if (!line) return null;
+                        const parts = line.split(/\s+/);
+                        const kind = parts[0];
+                        const delay = /^\d+$/.test(parts[parts.length - 1]) ? parseInt(parts.pop()) : 50;
+                        const value = parts.slice(1).join(' ');
+                        return { kind, value, delay };
+                    }).filter(Boolean);
+                    reRender();
+                });
+                addField('Steps', ta);
+            } else if (w.type === 'slider') {
+                addField('Binding', mkSelect(['volume', 'brightness', 'zoom', 'fps'], w.binding || 'volume', v => { w.binding = v; reRender(); }));
+                addField('Min', mkNum(w.min ?? 0, v => { w.min = v; reRender(); }));
+                addField('Max', mkNum(w.max ?? 100, v => { w.max = Math.max(w.min + 1, v); reRender(); }));
+            } else if (w.type === 'toggle') {
+                addField('Binding', mkSelect(['power', 'wg'], w.binding || 'power', v => { w.binding = v; reRender(); }));
+            }
+        }
+
+        // ==================== SHUTDOWN ====================
+        let cancelLeft = 0, cancelTick = null;
+
+        function openShutdownPrompt() { $('#shutdown-modal').classList.add('show'); }
+        function closeShutdownPrompt() { $('#shutdown-modal').classList.remove('show'); }
+
+        async function scheduleShutdown(delay) {
+            if (delay === 0 && !confirm('Мгновенно? Без шанса спастись. (режим троллинга)')) return;
+            closeShutdownPrompt();
+            const d = await apiS('POST', '/api/system/shutdown', delay === 0 ? { instant: true } : { delay });
+            if (d && d.success) {
+                toast(delay === 0 ? 'Выключение...' : `Выключение через ${d.delay} сек`);
+                if (delay > 0) showCancelShutdown(d.delay);
+            } else {
+                toast('Shutdown failed');
+            }
+        }
+
+        function showCancelShutdown(seconds) {
+            cancelLeft = seconds;
+            $('#btn-shutdown').style.display = 'none';
+            const btn = $('#btn-cancel-shutdown');
+            btn.style.display = '';
+            btn.textContent = `⏹ Cancel (${cancelLeft})`;
+            clearInterval(cancelTick);
+            cancelTick = setInterval(() => {
+                cancelLeft--;
+                if (cancelLeft <= 0) { hideCancelShutdown(); return; }
+                btn.textContent = `⏹ Cancel (${cancelLeft})`;
+            }, 1000);
+        }
+
+        function hideCancelShutdown() {
+            clearInterval(cancelTick);
+            $('#btn-cancel-shutdown').style.display = 'none';
+            $('#btn-shutdown').style.display = '';
+        }
+
+        async function cancelScheduledShutdown() {
+            await apiS('POST', '/api/system/shutdown/cancel');
+            hideCancelShutdown();
+            toast('Cancelled');
+        }
+
+        // ==================== SERVER CONFIG ====================
+        async function loadConfigText() {
+            const d = await apiS('GET', '/api/system/config');
+            const ta = $('#cfg-text');
+            if (!ta) return;
+            if (d && d.success) ta.value = d.content;
+            else ta.value = '// ' + ((d && d.error) || 'failed to load');
+        }
+
+        async function saveConfigText() {
+            const content = $('#cfg-text').value;
+            try { JSON.parse(content); } catch { toast('Invalid JSON'); return; }
+            const d = await apiS('POST', '/api/system/config', { content });
+            toast(d && d.success ? 'Saved (Port — after restart)' : 'Save failed');
+        }
+
+        async function restartServer() {
+            if (!confirm('Restart the server? (a few seconds of downtime)')) return;
+            toast('Restarting...');
+            await apiS('POST', '/api/system/restart');
+            let tries = 0;
+            const t = setInterval(async () => {
+                tries++;
+                const d = await apiS('GET', '/api/system/info');
+                if (d && d.Success) {
+                    clearInterval(t);
+                    toast('Server is up');
+                    loadConfigText();
+                } else if (tries > 30) {
+                    clearInterval(t);
+                    toast('No response — check the server');
+                }
+            }, 1000);
+        }
+
         // ==================== INIT ====================
+        renderTabs(); // мгновенно, по дефолтам — без мигания
         loadGameSettings();
         loadLayout();
         updateStatus();
         loadAudioDevices();
-        loadMacros();
+        loadUiConfig();
+        loadConfigText();
         setInterval(updateStatus, 5000);
     </script>
 </body>
