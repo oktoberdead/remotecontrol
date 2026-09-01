@@ -57,3 +57,19 @@ UI — **переписать** в единый декларативный дв�
 - API уже готово под конфиг: GET/POST /api/ui (ui.json, LocalApplicationData\RemoteControl),
   /api/system/config, /api/system/restart (--restart-delay)
 - Баги текущего состояния — в BUGS.md (раздел «после коммита 3»)
+
+## Статус: волна 1 реализована (2026-09-01, ветка arena/01a05bda)
+- Game переписан в декларативный конструктор (элементы/слои/opacity/профили per-IP)
+- Выбор → только ⤡; двойной тап → ✎/✕ (хэндлы одного семейства, без prompt())
+- button: click / hold / toggle / repeat (down → pressMs → up → intervalMs → ...)
+- touchpad(X/Y) / scrollbar(1 ось) / joystick; edge-зоны в px, только у touchpad
+- sens/lmbTap/edge: глобально в Game Settings + override на элементе (null = глобальное)
+- viewport-элемент: политики групп FPS/Q/Zoom (always/button/edit/hidden), жесты вкл/выкл,
+  gear — отдельный двигаемый элемент; вьюпорт-виджет доступен и на других вкладках
+- Профили: per-host по IP, несколько на хост, lastUsed, новый — по шаблону, ⧉ — копия
+- Общее редактирование вкладки Game (system-слой) — из глобальных Settings
+- Monitor: старый путь сохранён, ниже добавлен низкоуровневый dxva2 (/api/monitor2/*) —
+  РЕШЕНИЕ «не делать» ОТМЕНЕНО юзером в этой сессии; ждём вердикта после теста
+- ui.json теперь хранится/отдаётся как сырой JSON (схему держит клиент)
+- Баг edge-чекбокса в Settings закрыт (персист + визуал зоны при off)
+- Смоук: tools/smoke (jsdom, 30 проверок)

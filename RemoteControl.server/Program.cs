@@ -49,6 +49,7 @@ builder.Services.AddSingleton<MacroService>();
 builder.Services.AddSingleton<ScreenService>();
 builder.Services.AddSingleton<GamepadService>();
 builder.Services.AddSingleton<MonitorService>();
+builder.Services.AddSingleton<MonitorDdcService>();
 builder.Services.AddSingleton<UiService>();
 
 
@@ -490,6 +491,64 @@ app.MapPost("/api/monitor/power", async (HttpRequest req, MonitorService mon) =>
     });
 });
 
+// ==================== MONITOR v2 (низкоуровневый DDC/CI, dxva2.dll) ====================
+// Экспериментальный параллельный путь. Старый /api/monitor/* не трогаем и
+// состояние с ним не разделяем — блок можно независимо удалить/откатить.
+
+app.MapGet("/api/monitor2/state", (MonitorDdcService ddc, HttpRequest req) =>
+{
+    var index = int.TryParse(req.Query["index"], out var i) ? i : 0;
+    var monitors = ddc.ListMonitors().Select(m => new { index = m.Index, description = m.Description }).ToArray();
+
+    if (monitors.Length == 0)
+        return Results.Json(new { success = true, available = false, monitors });
+
+    var b = ddc.GetBrightness(index);
+    var power = ddc.GetPowerMode(index);
+
+    return Results.Json(new
+    {
+        success = true,
+        available = true,
+        monitors,
+        index,
+        brightness = b?.Current,
+        brightnessMin = b?.Min,
+        brightnessMax = b?.Max,
+        powerMode = power,
+        powerOn = power == 1,
+        powerKnown = power is 1 or 4 or 5
+    });
+});
+
+app.MapPost("/api/monitor2/brightness", async (HttpRequest req, MonitorDdcService ddc) =>
+{
+    var body = await req.ReadFromJsonAsync<Monitor2BrightnessRequest>();
+    var level = (uint)Math.Clamp(body?.Level ?? 0, 0, 100);
+    var ok = ddc.SetBrightness(body?.Index ?? 0, level);
+    return Results.Json(new { success = ok, brightness = ok ? (int?)level : null });
+});
+
+app.MapPost("/api/monitor2/power", async (HttpRequest req, MonitorDdcService ddc) =>
+{
+    var body = await req.ReadFromJsonAsync<Monitor2PowerRequest>();
+    var action = body?.Action?.ToLowerInvariant() ?? "";
+    if (action is not ("on" or "off" or "toggle"))
+        return Results.Json(new { success = false, error = "action: on|off|toggle" });
+
+    var ok = ddc.Power(body?.Index ?? 0, action);
+    return Results.Json(new { success = ok });
+});
+
+// ==================== CLIENT INFO (для per-host профилей Game) ====================
+app.MapGet("/api/client/info", (HttpContext ctx) =>
+{
+    var ip = ctx.Connection.RemoteIpAddress;
+    // IPv4-mapped IPv6 (::ffff:192.168.1.20) приводим к чистому IPv4
+    if (ip != null && ip.IsIPv4MappedToIPv6) ip = ip.MapToIPv4();
+    return Results.Json(new { success = true, ip = ip?.ToString() ?? "unknown" });
+});
+
 // ==================== MACROS ====================
 app.MapGet("/api/macros", (MacroService macros) =>
     Results.Json(new { Success = true, Macros = macros.GetAll() }));
@@ -648,10 +707,8 @@ app.MapPost("/api/game/layout", async (HttpRequest req) =>
 // ==================== UI CONFIG ====================
 app.MapGet("/api/ui", (UiService ui) =>
 {
-    var cfg = ui.Load();
-    // JsonElement сохраняется как есть (camelCase из UiService.JsonOpts)
-    var json = JsonSerializer.SerializeToElement(cfg, UiService.JsonOpts);
-    return Results.Json(new { success = true, config = json });
+    // ui.json хранится и отдаётся как сырой JSON — схему держит клиент
+    return Results.Json(new { success = true, config = ui.Load() });
 });
 
 app.MapPost("/api/ui", async (HttpRequest req, UiService ui) =>
@@ -693,5 +750,7 @@ record MonitorBrightnessRequest(int Level, string? Monitor = null);
 record MonitorPowerRequest(string Action, string? Monitor = null);
 record SystemShutdownRequest(int Delay = 30, bool Instant = false);
 record ConfigSaveRequest(string Content);
-record UiSaveRequest(UiConfig Config);
+record UiSaveRequest(JsonElement Config);
+record Monitor2BrightnessRequest(int Level, int Index = 0);
+record Monitor2PowerRequest(string Action, int Index = 0);
 file record GamepadMsg(string t, float x = 0, float y = 0);
