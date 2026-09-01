@@ -1,4 +1,4 @@
-﻿using System.Drawing;
+using System.Drawing;
 using System.Drawing.Imaging;
 using System.Net.WebSockets;
 using System.Runtime.InteropServices;
@@ -244,6 +244,8 @@ public class ScreenService
         {
             while (ws.State == WebSocketState.Open && !ct.IsCancellationRequested)
             {
+                sw.Restart();
+
                 var idle = (DateTime.UtcNow - _lastInput).TotalSeconds;
                 int fps = idle > IDLE_TIMEOUT_SECONDS ? _idleFps : _targetFps;
                 var frameDelayMs = 1000.0 / fps;

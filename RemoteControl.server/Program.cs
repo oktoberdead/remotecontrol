@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Http.HttpResults;
 using RemoteControl.Server;
 using RemoteControl.Server.Models;
 using RemoteControl.Server.Services;
+using System.Diagnostics;
 using System.Net.WebSockets;
 using System.Text;
 using System.Text.Json;
@@ -164,6 +165,45 @@ app.MapGet("/api/system/info", () =>
         Uptime = $"{uptime.Days}d {uptime.Hours}h {uptime.Minutes}m",
         Machine = Environment.MachineName
     });
+});
+
+// ==================== SYSTEM: SHUTDOWN ====================
+app.MapPost("/api/system/shutdown", async (HttpRequest req) =>
+{
+    var body = await req.ReadFromJsonAsync<SystemShutdownRequest>();
+    int delay = body?.Instant == true ? 0 : Math.Clamp(body?.Delay ?? 30, 0, 300);
+
+    try
+    {
+        using var p = Process.Start(new ProcessStartInfo("shutdown.exe", $"/s /t {delay}")
+        {
+            UseShellExecute = false,
+            CreateNoWindow = true
+        });
+        Console.WriteLine($"Shutdown scheduled in {delay}s");
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"Shutdown failed: {ex.Message}");
+        return Results.Json(new { success = false, error = ex.Message });
+    }
+
+    return Results.Json(new { success = true, delay });
+});
+
+app.MapPost("/api/system/shutdown/cancel", () =>
+{
+    try
+    {
+        using var p = Process.Start(new ProcessStartInfo("shutdown.exe", "/a")
+        {
+            UseShellExecute = false,
+            CreateNoWindow = true
+        });
+    }
+    catch { /* ничего не было запланировано */ }
+
+    return Results.Json(new { success = true });
 });
 
 // ==================== KEYBOARD ====================
@@ -573,4 +613,5 @@ record PanRequest(float X, float Y, bool Absolute = false);
 record FpsRequest(int Fps, int? IdleFps = null);
 record MonitorBrightnessRequest(int Level, string? Monitor = null);
 record MonitorPowerRequest(string Action, string? Monitor = null);
+record SystemShutdownRequest(int Delay = 30, bool Instant = false);
 file record GamepadMsg(string t, float x = 0, float y = 0);

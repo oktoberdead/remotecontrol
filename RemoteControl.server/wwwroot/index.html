@@ -388,9 +388,48 @@
             z-index: 1000
         }
 
-            #toast.show {
-                transform: translateX(-50%) translateY(0)
+        #toast.show {
+            transform: translateX(-50%) translateY(0)
+        }
+
+        .shutdown-modal {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,.7);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1001
+        }
+
+            .shutdown-modal.show {
+                display: flex
             }
+
+        .shutdown-box {
+            background: #16213e;
+            border: 1px solid rgba(230,57,70,.5);
+            border-radius: 14px;
+            padding: 18px;
+            width: min(88vw, 320px);
+            display: flex;
+            flex-direction: column;
+            gap: 8px
+        }
+
+        .shutdown-title {
+            color: #ff6b6b;
+            font-size: 1.1em;
+            font-weight: 700;
+            text-align: center
+        }
+
+        .shutdown-text {
+            color: #888;
+            font-size: .85em;
+            text-align: center;
+            margin-bottom: 6px
+        }
 
         /* Stream */
         .stream-wrap {
@@ -702,6 +741,70 @@
             outline-color: #00d9ff;
         }
 
+        .el-handle {
+            display: none;
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+            color: #000;
+            z-index: 101;
+            box-shadow: 0 1px 4px rgba(0,0,0,.5)
+        }
+
+            .el-handle.h-key {
+                left: -8px;
+                top: -8px;
+                background: #e67e22
+            }
+
+            .el-handle.h-del {
+                right: -8px;
+                top: -8px;
+                background: #e63946;
+                color: #fff
+            }
+
+        .game-element.selected {
+            outline: 2px solid #00d9ff !important
+        }
+
+            .game-element.selected .el-handle {
+                display: flex
+            }
+
+            .game-element.resizing .el-handle {
+                display: none !important
+            }
+
+        .el-options {
+            position: absolute;
+            z-index: 300;
+            display: flex;
+            gap: 4px;
+            background: rgba(22,33,62,.97);
+            border: 1px solid rgba(0,217,255,.5);
+            border-radius: 8px;
+            padding: 4px
+        }
+
+            .el-options button {
+                border: 0;
+                background: #333;
+                color: #fff;
+                border-radius: 6px;
+                padding: 6px 8px;
+                font-size: 11px;
+                cursor: pointer
+            }
+
+                .el-options button.danger {
+                    background: #e63946
+                }
+
         /* Custom buttons */
         .custom-btn {
             position: absolute;
@@ -981,9 +1084,11 @@
             <div class="section">
                 <h2>Media</h2>
                 <div class="buttons">
+                    <button class="btn btn-dark btn-icon" onclick="api('POST','/api/key/left')" title="Перемотка назад">⏪</button>
                     <button class="btn btn-dark btn-icon" onclick="api('POST','/api/key/prev')">⏮</button>
                     <button class="btn btn-primary btn-icon" onclick="api('POST','/api/key/playpause')">⏯</button>
                     <button class="btn btn-dark btn-icon" onclick="api('POST','/api/key/next')">⏭</button>
+                    <button class="btn btn-dark btn-icon" onclick="api('POST','/api/key/right')" title="Перемотка вперёд">⏩</button>
                     <button class="btn btn-dark btn-icon" onclick="api('POST','/api/key/stop')">⏹</button>
                 </div>
             </div>
@@ -995,6 +1100,10 @@
                     <button class="btn btn-warning" onclick="api('POST','/api/combo',{keys:['alt','tab']})">Alt+Tab</button>
                     <button class="btn btn-danger" onclick="api('POST','/api/combo',{keys:['alt','f4']})">Alt+F4</button>
                     <button class="btn btn-dark" onclick="api('POST','/api/key/f11')">F11</button>
+                </div>
+                <div class="buttons" style="margin-top:8px">
+                    <button class="btn btn-danger btn-wide" id="btn-shutdown" onclick="openShutdownPrompt()">⏻ Shutdown PC</button>
+                    <button class="btn btn-dark btn-wide" id="btn-cancel-shutdown" onclick="cancelScheduledShutdown()" style="display:none">⏹ Cancel</button>
                 </div>
             </div>
 
@@ -1371,7 +1480,7 @@
             <button class="btn btn-primary" id="btn-save-layout">💾 Save</button>
             <button class="btn btn-dark" id="btn-cancel-layout">✕ Cancel</button>
         </div>
-        <div class="layout-editor-hint">Drag buttons to move. Tap to edit. Long-press to delete.</div>
+        <div class="layout-editor-hint">Drag to move · Tap — select · Double-tap — options · Corners: 🔑 / ✕ / ⤡</div>
     </div>
 
     <!-- Add Button Modal -->
@@ -1418,6 +1527,17 @@
     </div>
 
     <div id="toast"></div>
+
+    <!-- Shutdown Prompt -->
+    <div class="shutdown-modal" id="shutdown-modal">
+        <div class="shutdown-box">
+            <div class="shutdown-title">⏻ Shutdown PC?</div>
+            <div class="shutdown-text">Компьютер будет выключен</div>
+            <button class="btn btn-warning btn-wide" onclick="scheduleShutdown(30)">Через 30 сек</button>
+            <button class="btn btn-danger btn-wide" onclick="scheduleShutdown(0)">Мгновенно 🔥</button>
+            <button class="btn btn-dark btn-wide" onclick="closeShutdownPrompt()">Отмена</button>
+        </div>
+    </div>
 
     <script>
         // ==================== UTILS ====================
@@ -1947,18 +2067,12 @@
                 updateZoomLabel();
             };
 
+            // Только последний кадр: старые отбрасываются (отзывчивость, а не история)
             ws.onmessage = e => {
                 if (!ctx) return;
-                const blob = new Blob([e.data], { type: 'image/jpeg' });
-                const url = URL.createObjectURL(blob);
-                const img = new Image();
-                img.onload = () => {
-                    canvas.width = img.width;
-                    canvas.height = img.height;
-                    ctx.drawImage(img, 0, 0);
-                    URL.revokeObjectURL(url);
-                };
-                img.src = url;
+                if (pendingFrame) URL.revokeObjectURL(pendingFrame.url);
+                pendingFrame = { url: URL.createObjectURL(new Blob([e.data], { type: 'image/jpeg' })) };
+                if (!decodingFrame) startDecodeFrame();
             };
 
             ws.onclose = () => {
@@ -1969,9 +2083,47 @@
             ws.onerror = () => { if (ws) ws.close(); };
         }
 
+        // latest-frame: максимум один кадр на декодировании + один в ожидании
+        let pendingFrame = null, decodingFrame = null;
+
+        function startDecodeFrame() {
+            const f = pendingFrame;
+            pendingFrame = null;
+            if (!f) return;
+            decodingFrame = f;
+            const img = new Image();
+            img.onload = () => {
+                if (decodingFrame !== f) { URL.revokeObjectURL(f.url); return; }
+                decodingFrame = null;
+                if (pendingFrame) { startDecodeFrame(); return; } // пришёл более свежий
+                URL.revokeObjectURL(f.url);
+                canvas.width = img.width;
+                canvas.height = img.height;
+                ctx.drawImage(img, 0, 0);
+            };
+            img.onerror = () => {
+                if (decodingFrame !== f) { URL.revokeObjectURL(f.url); return; }
+                decodingFrame = null;
+                URL.revokeObjectURL(f.url);
+                if (pendingFrame) startDecodeFrame();
+            };
+            img.src = f.url;
+        }
+
         function stopStream() {
+            if (pendingFrame) { URL.revokeObjectURL(pendingFrame.url); pendingFrame = null; }
+            if (decodingFrame) { URL.revokeObjectURL(decodingFrame.url); decodingFrame = null; }
             if (ws) { ws.close(); ws = null; }
         }
+
+        // Вкладка браузера скрыта -> рвём сессию, видимая -> подхватываем
+        document.addEventListener('visibilitychange', () => {
+            if (document.hidden) {
+                if (currentTab === 'stream') stopStream();
+            } else {
+                if (currentTab === 'stream' && !ws) startStream();
+            }
+        });
 
         if (streamView) {
             streamView.onclick = e => {
@@ -2344,7 +2496,7 @@
                 el.style.width = (btn.w || 60) + 'px';
                 el.style.height = (btn.h || 40) + 'px';
                 el.dataset.customIdx = idx;
-                el.innerHTML += '<div class="resize-handle"></div>';
+                el.innerHTML += '<div class="el-handle h-key" data-handle="key">🔑</div><div class="el-handle h-del" data-handle="del">✕</div><div class="resize-handle"></div>';
 
                 if (!editMode) {
                     initCustomButtonBehavior(el, btn);
@@ -2408,23 +2560,150 @@
             }
         }
 
+        // ==================== ELEMENT OPTIONS ====================
+        let lastTap = null; // { el, t }
+        const initedEls = new WeakSet();
+
+        function selectElement(el) {
+            document.querySelectorAll('.game-element.selected').forEach(x => {
+                if (x !== el) x.classList.remove('selected');
+            });
+            if (el) el.classList.add('selected');
+            hideElementOptions();
+        }
+
+        function showElementOptions(el) {
+            hideElementOptions();
+            const area = document.getElementById('game-area');
+            if (!area) return;
+
+            const panel = document.createElement('div');
+            panel.className = 'el-options';
+            panel.id = 'el-options-panel';
+            const isCustom = el.dataset.customIdx !== undefined;
+
+            if (isCustom) {
+                panel.innerHTML = '<button data-act="key">🔑 Key</button><button data-act="resize">↔ Resize</button><button data-act="del" class="danger">✕ Del</button>';
+            } else {
+                panel.innerHTML = '<button data-act="resize">↔ Resize</button>';
+            }
+
+            panel.addEventListener('pointerdown', e => e.stopPropagation());
+            panel.addEventListener('click', e => {
+                const act = e.target && e.target.dataset && e.target.dataset.act;
+                if (!act) return;
+                e.stopPropagation();
+                if (act === 'key') changeElementKey(el);
+                else if (act === 'resize') openResizeForm(el);
+                else if (act === 'del') deleteGameElement(el);
+            });
+
+            const ar = area.getBoundingClientRect();
+            const er = el.getBoundingClientRect();
+            panel.style.left = Math.max(4, Math.min(er.left - ar.left, ar.width - 140)) + 'px';
+            panel.style.top = '9999px';
+            area.appendChild(panel);
+            requestAnimationFrame(() => {
+                let top = er.top - ar.top - panel.offsetHeight - 8;
+                if (top < 4) top = er.bottom - ar.top + 8;
+                panel.style.top = top + 'px';
+            });
+        }
+
+        function hideElementOptions() {
+            document.getElementById('el-options-panel')?.remove();
+        }
+
+        function changeElementKey(el) {
+            if (el.dataset.customIdx === undefined) return;
+            const idx = parseInt(el.dataset.customIdx);
+            const btn = layout.customButtons[idx];
+            if (!btn) return;
+            const a = prompt('Key / action:', btn.action);
+            if (a !== null && a.trim()) {
+                btn.action = a.trim();
+                renderCustomButtons();
+                toast('Action: ' + btn.action);
+            }
+        }
+
+        function deleteGameElement(el) {
+            if (el.dataset.customIdx === undefined) {
+                toast('Built-in element — can\'t delete');
+                return;
+            }
+            if (!confirm('Delete this element?')) return;
+            layout.customButtons.splice(parseInt(el.dataset.customIdx), 1);
+            hideElementOptions();
+            renderCustomButtons();
+        }
+
+        function openResizeForm(el) {
+            const w = Math.round(el.offsetWidth);
+            const h = Math.round(el.offsetHeight);
+            const square = el.dataset.square === '1';
+
+            const val = prompt(square ? 'Size (px):' : 'Width × Height (e.g. 240×120):', square ? String(w) : `${w}×${h}`);
+            if (val === null) return;
+            val = val.trim().replace(',', '×').replace('*', '×');
+
+            let nw = w, nh = h;
+            if (square) {
+                const s = parseInt(val);
+                if (!isNaN(s)) nw = nh = s;
+            } else {
+                const m = val.match(/(\d+)\s*[x×]\s*(\d+)/i);
+                if (m) { nw = parseInt(m[1]); nh = parseInt(m[2]); }
+                else {
+                    const n = parseInt(val);
+                    if (!isNaN(n)) nw = nh = n;
+                }
+            }
+            nw = Math.max(MIN_SIZE, nw);
+            nh = Math.max(MIN_SIZE, nh);
+            el.style.width = nw + 'px';
+            el.style.height = nh + 'px';
+
+            if (el.dataset.el && layout[el.dataset.el]) {
+                layout[el.dataset.el] = { ...layout[el.dataset.el], w: nw, h: nh };
+            } else if (el.dataset.customIdx !== undefined) {
+                const b = layout.customButtons[parseInt(el.dataset.customIdx)];
+                if (b) { b.w = nw; b.h = nh; }
+            }
+            toast('Resized');
+        }
+
         function initDragResize() {
             const area = document.getElementById('game-area');
             if (!area) return;
 
             area.querySelectorAll('.game-element').forEach(el => {
+                if (initedEls.has(el)) return; // не регистрируем повторно
+                initedEls.add(el);
+
                 let mode = null;
                 let startX, startY, startW, startH, startL, startT;
+                let moved = false, downTime = 0;
                 const isSquare = el.dataset.square === '1';
                 const elKey = el.dataset.el;
                 const customIdx = el.dataset.customIdx;
-                const handle = el.querySelector('.resize-handle');
 
                 el.addEventListener('pointerdown', e => {
                     if (!editMode) return;
                     e.preventDefault();
                     e.stopPropagation();
                     el.setPointerCapture(e.pointerId);
+
+                    // боковые хэндлы: key / del
+                    for (const h of el.querySelectorAll('.el-handle')) {
+                        const hr = h.getBoundingClientRect();
+                        if (e.clientX >= hr.left - 8 && e.clientX <= hr.right + 8 &&
+                            e.clientY >= hr.top - 8 && e.clientY <= hr.bottom + 8) {
+                            if (h.dataset.handle === 'key') changeElementKey(el);
+                            else if (h.dataset.handle === 'del') deleteGameElement(el);
+                            return;
+                        }
+                    }
 
                     const rect = el.getBoundingClientRect();
                     startX = e.clientX;
@@ -2433,15 +2712,19 @@
                     startT = parseInt(el.style.top) || 0;
                     startW = rect.width;
                     startH = rect.height;
+                    moved = false;
+                    downTime = Date.now();
 
-                    if (handle) {
-                        const hr = handle.getBoundingClientRect();
-                        if (e.clientX >= hr.left && e.clientY >= hr.top) {
-                            mode = 'resize';
-                            return;
-                        }
+                    selectElement(el);
+
+                    const rh = el.querySelector('.resize-handle')?.getBoundingClientRect();
+                    if (rh && e.clientX >= rh.left - 6 && e.clientY >= rh.top - 6 &&
+                        e.clientX <= rh.right + 10 && e.clientY <= rh.bottom + 10) {
+                        mode = 'resize';
+                        el.classList.add('resizing');
+                    } else {
+                        mode = 'move';
                     }
-                    mode = 'move';
                 });
 
                 el.addEventListener('pointermove', e => {
@@ -2450,6 +2733,7 @@
 
                     const dx = e.clientX - startX;
                     const dy = e.clientY - startY;
+                    if (!moved && Math.hypot(dx, dy) > 6) moved = true;
 
                     if (mode === 'move') {
                         el.style.left = Math.max(0, startL + dx) + 'px';
@@ -2468,9 +2752,9 @@
                     }
                 });
 
-                const endDrag = e => {
+                const endDrag = () => {
                     if (!mode) return;
-                    e.preventDefault();
+                    const wasResize = mode === 'resize';
 
                     const x = parseInt(el.style.left) || 0;
                     const y = parseInt(el.style.top) || 0;
@@ -2488,27 +2772,34 @@
                     }
 
                     mode = null;
+                    el.classList.remove('resizing');
+
+                    // тап / двойной тап: без движения, короткое нажатие
+                    if (!wasResize && !moved && Date.now() - downTime < 400) {
+                        const now = Date.now();
+                        if (lastTap && lastTap.el === el && now - lastTap.t < 350) {
+                            lastTap = null;
+                            selectElement(el);
+                            showElementOptions(el);
+                        } else {
+                            lastTap = { el, t: now };
+                        }
+                    }
                 };
 
                 el.addEventListener('pointerup', endDrag);
-                el.addEventListener('pointercancel', endDrag);
-
-                if (customIdx !== undefined) {
-                    let longPress = null;
-                    el.addEventListener('pointerdown', () => {
-                        longPress = setTimeout(() => {
-                            if (confirm('Delete this button?')) {
-                                layout.customButtons.splice(parseInt(customIdx), 1);
-                                renderCustomButtons();
-                                initDragResize();
-                            }
-                        }, 800);
-                    });
-                    el.addEventListener('pointerup', () => clearTimeout(longPress));
-                    el.addEventListener('pointermove', () => clearTimeout(longPress));
-                }
+                el.addEventListener('pointercancel', () => { mode = null; el.classList.remove('resizing'); });
             });
         }
+
+        // тап по пустому месту — снять выделение и закрыть панель (один раз)
+        document.getElementById('game-area')?.addEventListener('pointerdown', e => {
+            if (!editMode) return;
+            if (!e.target.closest('.game-element') && !e.target.closest('.el-options')) {
+                selectElement(null);
+                hideElementOptions();
+            }
+        });
 
         // ==================== GAME UI BINDINGS ====================
         function openGameSettings() {
@@ -2950,6 +3241,50 @@
             toast(action === 'on' ? 'Turning on...' : action === 'off' ? 'Turning off...' : 'Switching...');
             await api('POST', '/api/monitor/power', { action }, true);
             setTimeout(updateMonitor, 800);
+        }
+
+        // ==================== SHUTDOWN ====================
+        let cancelLeft = 0, cancelTick = null;
+
+        function openShutdownPrompt() { $('#shutdown-modal').classList.add('show'); }
+        function closeShutdownPrompt() { $('#shutdown-modal').classList.remove('show'); }
+
+        async function scheduleShutdown(delay) {
+            if (delay === 0 && !confirm('Мгновенно? Без шанса спастись. (режим троллинга)')) return;
+            closeShutdownPrompt();
+            const d = await apiS('POST', '/api/system/shutdown', delay === 0 ? { instant: true } : { delay });
+            if (d && d.success) {
+                toast(delay === 0 ? 'Выключение...' : `Выключение через ${d.delay} сек`);
+                if (delay > 0) showCancelShutdown(d.delay);
+            } else {
+                toast('Shutdown failed');
+            }
+        }
+
+        function showCancelShutdown(seconds) {
+            cancelLeft = seconds;
+            $('#btn-shutdown').style.display = 'none';
+            const btn = $('#btn-cancel-shutdown');
+            btn.style.display = '';
+            btn.textContent = `⏹ Cancel (${cancelLeft})`;
+            clearInterval(cancelTick);
+            cancelTick = setInterval(() => {
+                cancelLeft--;
+                if (cancelLeft <= 0) { hideCancelShutdown(); return; }
+                btn.textContent = `⏹ Cancel (${cancelLeft})`;
+            }, 1000);
+        }
+
+        function hideCancelShutdown() {
+            clearInterval(cancelTick);
+            $('#btn-cancel-shutdown').style.display = 'none';
+            $('#btn-shutdown').style.display = '';
+        }
+
+        async function cancelScheduledShutdown() {
+            await apiS('POST', '/api/system/shutdown/cancel');
+            hideCancelShutdown();
+            toast('Cancelled');
         }
 
         // ==================== INIT ====================
