@@ -34,6 +34,19 @@ public class ScreenService
 
     public (int fps, int idleFps) GetFps() => (_targetFps, _idleFps);
 
+    // Качество: масштаб выходного разрешения (от BASE_OUTPUT) + фикс. JPEG-качество (0 = авто по зуму)
+    private int _qualityPct = 100;
+    private int _qualityJpeg = 0;
+
+    public void SetQuality(int percent, int jpeg)
+    {
+        _qualityPct = Math.Clamp(percent, 25, 100);
+        _qualityJpeg = jpeg > 0 ? Math.Clamp(jpeg, 10, 95) : 0;
+        _logger.LogInformation("Quality set to {Pct}% (jpeg: {Jpeg})", _qualityPct, _qualityJpeg);
+    }
+
+    public (int percent, int jpeg) GetQuality() => (_qualityPct, _qualityJpeg);
+
 
 
 
@@ -148,8 +161,8 @@ public class ScreenService
             // При зуме 8x: выводим 960x540 (захвачено 240x135, масштабируем вверх), quality 75
 
             // Вычисляем выходной размер - держим постоянным для стабильности
-            int outW = BASE_OUTPUT_WIDTH;
-            int outH = BASE_OUTPUT_HEIGHT;
+            int outW = BASE_OUTPUT_WIDTH * _qualityPct / 100;
+            int outH = BASE_OUTPUT_HEIGHT * _qualityPct / 100;
 
             // Если захваченная область меньше выходной - не масштабируем вверх слишком сильно
             // Максимум 2x upscale
@@ -169,9 +182,11 @@ public class ScreenService
             outW = Math.Max(outW, 480);
             outH = Math.Max(outH, 270);
 
-            // JPEG quality растёт с зумом
+            // JPEG quality: фиксированное (если задано) или растёт с зумом
             // zoom 1 -> 35, zoom 2 -> 50, zoom 4 -> 65, zoom 8 -> 75
-            int quality = (int)(MIN_JPEG_QUALITY + (MAX_JPEG_QUALITY - MIN_JPEG_QUALITY) * Math.Log2(_zoomLevel) / 3.0);
+            int quality = _qualityJpeg > 0
+                ? _qualityJpeg
+                : (int)(MIN_JPEG_QUALITY + (MAX_JPEG_QUALITY - MIN_JPEG_QUALITY) * Math.Log2(_zoomLevel) / 3.0);
             quality = Math.Clamp(quality, MIN_JPEG_QUALITY, MAX_JPEG_QUALITY);
 
             // Масштабирование

@@ -357,6 +357,10 @@ app.MapPost("/api/screen/zoom", async (HttpRequest req, ScreenService screen) =>
     else if (body?.Action == "set" && body.Level.HasValue)
         screen.SetZoom(body.Level.Value);
 
+    // zoom + абсолютный пан атомарно (коммит client-side view в конце жеста)
+    if (body?.PanX.HasValue == true && body.PanY.HasValue == true)
+        screen.SetPan(body.PanX.Value, body.PanY.Value);
+
     var state = screen.GetState();
     return Results.Json(new { success = true, zoom = state.zoom, panX = state.panX, panY = state.panY });
 });
@@ -386,24 +390,19 @@ var monitorName = builder.Configuration.GetValue<string>("Monitor:Name") ?? "Pri
 
 app.MapGet("/api/monitor/state", (MonitorService mon) =>
 {
-    if (!mon.IsAvailable())
-        return Results.Json(new { success = true, available = false });
-
-    var (name, brightnessMax) = mon.GetMonitorInfo(monitorName);
-    var brightness = mon.GetValue(monitorName, "10");
-    var powerMode = mon.GetValue(monitorName, "D6");
+    var s = mon.GetState(monitorName);
 
     return Results.Json(new
     {
         success = true,
-        available = true,
-        monitor = name ?? monitorName,
-        brightness,
-        brightnessMax = brightnessMax ?? 100,
-        powerMode,
+        available = s.Available,
+        monitor = s.MonitorName ?? monitorName,
+        brightness = s.Brightness,
+        brightnessMax = s.BrightnessMax,
+        powerMode = s.PowerMode,
         // VESA VCP: 1 = on, 4 = standby, 5 = suspend
-        powerOn = powerMode == 1,
-        powerKnown = powerMode is 1 or 4 or 5
+        powerOn = s.PowerMode == 1,
+        powerKnown = s.PowerMode is 1 or 4 or 5
     });
 });
 
@@ -413,12 +412,9 @@ app.MapPost("/api/monitor/brightness", async (HttpRequest req, MonitorService mo
         return Results.Json(new { success = false, error = "ControlMyMonitor.exe not found" });
 
     var body = await req.ReadFromJsonAsync<MonitorBrightnessRequest>();
-    var level = Math.Clamp(body?.Level ?? 0, 0, 100);
+    var (ok, value) = mon.SetBrightness(monitorName, body?.Level ?? 0);
 
-    var ok = mon.SetValue(monitorName, "10", level);
-    var brightness = mon.GetValue(monitorName, "10");
-
-    return Results.Json(new { success = ok, brightness, requested = level });
+    return Results.Json(new { success = ok, brightness = ok ? value : (int?)null, requested = value });
 });
 
 app.MapPost("/api/monitor/power", async (HttpRequest req, MonitorService mon) =>
@@ -427,24 +423,14 @@ app.MapPost("/api/monitor/power", async (HttpRequest req, MonitorService mon) =>
         return Results.Json(new { success = false, error = "ControlMyMonitor.exe not found" });
 
     var body = await req.ReadFromJsonAsync<MonitorPowerRequest>();
-    var action = body?.Action?.ToLowerInvariant() ?? "";
-
-    bool ok = action switch
-    {
-        "on" => mon.TurnOn(monitorName),
-        "off" => mon.TurnOff(monitorName),
-        "toggle" => mon.SwitchOffOn(monitorName),
-        _ => false
-    };
-
-    var powerMode = mon.GetValue(monitorName, "D6");
+    var (ok, power) = mon.SetPower(monitorName, body?.Action?.ToLowerInvariant() ?? "");
 
     return Results.Json(new
     {
         success = ok,
-        powerMode,
-        powerOn = powerMode == 1,
-        powerKnown = powerMode is 1 or 4 or 5
+        powerMode = power,
+        powerOn = power == 1,
+        powerKnown = power is 1 or 4 or 5
     });
 });
 
@@ -487,6 +473,14 @@ app.MapPost("/api/screen/fps", async (HttpRequest req, ScreenService screen) =>
     screen.SetFps(body?.Fps ?? 30, body?.IdleFps);
     var fps = screen.GetFps();
     return Results.Json(new { success = true, fps = fps.fps, idleFps = fps.idleFps });
+});
+
+app.MapPost("/api/screen/quality", async (HttpRequest req, ScreenService screen) =>
+{
+    var body = await req.ReadFromJsonAsync<QualityRequest>();
+    screen.SetQuality(body?.Percent ?? 100, body?.Jpeg ?? 0);
+    var q = screen.GetQuality();
+    return Results.Json(new { success = true, percent = q.percent, jpeg = q.jpeg });
 });
 
 app.MapPost("/api/key/down/{key}", (string key, KeyboardService kb, ScreenService screen) =>
@@ -608,9 +602,10 @@ record ScrollRequest(int Delta);
 record VolumeRequest(int Level);
 record TypeRequest(string Text);
 record DeviceRequest(string Name);
-record ZoomRequest(string Action, float? Level = null);
+record ZoomRequest(string Action, float? Level = null, float? PanX = null, float? PanY = null);
 record PanRequest(float X, float Y, bool Absolute = false);
 record FpsRequest(int Fps, int? IdleFps = null);
+record QualityRequest(int Percent = 100, int Jpeg = 0);
 record MonitorBrightnessRequest(int Level, string? Monitor = null);
 record MonitorPowerRequest(string Action, string? Monitor = null);
 record SystemShutdownRequest(int Delay = 30, bool Instant = false);
