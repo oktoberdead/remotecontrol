@@ -28,91 +28,165 @@ function renderTabsManager() {
     box.innerHTML = '';
     const order = uiCfg.tabOrder || [];
 
-    const allIds = [...order.filter(id => isPageTab(id) || SPECIAL_TABS[id]), 'settings'];
+    // settings не показываем: её нельзя двигать/прятать/удалять
+    const ids = order.filter(id => isPageTab(id) || (SPECIAL_TABS[id] && id !== 'settings'));
 
-    allIds.forEach(id => {
+    ids.forEach(id => {
         const tc = uiCfg.tabs[id] || (uiCfg.tabs[id] = {});
         const row = document.createElement('div');
         row.className = 'settings-row tabman-row';
+        row.dataset.tabId = id;
+
+        // ⠿ — хэндл перетаскивания (порядок вкладок)
+        const grip = document.createElement('span');
+        grip.className = 'tabman-grip';
+        grip.textContent = '⠿';
+        initTabDrag(grip, row, id);
 
         const label = document.createElement('span');
         label.className = 'tabman-name';
         label.textContent = tabTitle(id);
-        if (isPageTab(id)) {
-            label.title = 'Tap to rename';
-            label.onclick = () => {
-                const inp = document.createElement('input');
-                inp.type = 'text';
-                inp.className = 'cfg-mini';
-                inp.value = uiCfg.pages[id].title || id;
-                row.replaceChild(inp, label);
-                inp.focus();
-                const commit = () => {
-                    uiCfg.pages[id].title = inp.value.trim() || id;
-                    saveUiConfigSoon();
-                    renderTabs();
-                    renderTabsManager();
-                };
-                inp.addEventListener('keydown', e => { if (e.key === 'Enter') commit(); });
-                inp.addEventListener('blur', commit);
-            };
+
+        row.append(grip, label);
+
+        if (tc.visible === false) {
+            const mark = document.createElement('span');
+            mark.className = 'tabman-hidden-mark';
+            mark.textContent = 'hidden';
+            row.appendChild(mark);
+        } else if (tc.inDropdown) {
+            const mark = document.createElement('span');
+            mark.className = 'tabman-hidden-mark';
+            mark.textContent = '⋯';
+            row.appendChild(mark);
         }
 
-        const mkBtn = (txt, cls, fn, disabled) => {
-            const b = document.createElement('button');
-            b.className = 'btn btn-sm ' + cls;
-            b.textContent = txt;
-            if (disabled) b.disabled = true;
-            else b.onclick = fn;
-            row.appendChild(b);
-            return b;
+        // ✏️ — всё управление вкладкой в модалке (ничего не уезжает за экран)
+        const edit = document.createElement('button');
+        edit.className = 'btn btn-sm btn-warning';
+        edit.textContent = '✏️';
+        edit.onclick = () => openTabModal(id);
+        row.appendChild(edit);
+
+        box.appendChild(row);
+    });
+}
+
+// ---------- drag-reorder за хэндл ----------
+function initTabDrag(grip, row, id) {
+    grip.addEventListener('pointerdown', e => {
+        e.preventDefault();
+        grip.setPointerCapture(e.pointerId);
+        const box = row.parentElement;
+        const startY = e.clientY;
+        row.classList.add('dragging');
+
+        const move = ev => {
+            row.style.transform = `translateY(${ev.clientY - startY}px)`;
+            const rows = [...box.querySelectorAll('.tabman-row')];
+            const myRect = row.getBoundingClientRect();
+            const myMid = myRect.top + myRect.height / 2;
+            for (const other of rows) {
+                if (other === row) continue;
+                const r = other.getBoundingClientRect();
+                if (myMid > r.top && myMid < r.bottom) {
+                    // поменять местами в DOM (transform пересчитается от новой базы)
+                    const after = myRect.top < r.top;
+                    box.insertBefore(row, after ? other.nextSibling : other);
+                    row.style.transform = '';
+                    // и в конфиге
+                    const a = uiCfg.tabOrder.indexOf(id);
+                    const b = uiCfg.tabOrder.indexOf(other.dataset.tabId);
+                    if (a >= 0 && b >= 0) {
+                        uiCfg.tabOrder.splice(a, 1);
+                        uiCfg.tabOrder.splice(b, 0, id);
+                    }
+                    break;
+                }
+            }
         };
+        const up = () => {
+            grip.removeEventListener('pointermove', move);
+            grip.removeEventListener('pointerup', up);
+            grip.removeEventListener('pointercancel', up);
+            row.classList.remove('dragging');
+            row.style.transform = '';
+            saveUiConfigSoon();
+            renderTabs();
+        };
+        grip.addEventListener('pointermove', move);
+        grip.addEventListener('pointerup', up);
+        grip.addEventListener('pointercancel', up);
+    });
+}
 
-        row.appendChild(label);
+// ---------- модалка вкладки: rename / edit / hide / dropdown / delete ----------
+function openTabModal(id) {
+    const body = $('#element-editor-body');
+    const title = $('#element-editor-title');
+    if (!body) return;
+    const tc = uiCfg.tabs[id] || (uiCfg.tabs[id] = {});
+    title.textContent = 'Tab: ' + tabTitle(id);
+    body.innerHTML = '';
 
-        // Edit
-        mkBtn('✏️', tabEditable(id) ? 'btn-warning' : 'btn-dark', () => startTabEdit(id), !tabEditable(id));
+    if (isPageTab(id)) {
+        ekRow(body, 'Name', ekText(uiCfg.pages[id].title || id, v => {
+            uiCfg.pages[id].title = v.trim() || id;
+            saveUiConfigSoon();
+            renderTabs();
+            renderTabsManager();
+            title.textContent = 'Tab: ' + tabTitle(id);
+        }));
+    }
 
-        // Hide / Show (settings прятать нельзя — потеряешь доступ к настройкам)
-        mkBtn(tc.visible === false ? 'Show' : 'Hide', tc.visible === false ? 'btn-warning' : 'btn-dark',
-            () => { tc.visible = tc.visible === false ? true : false; persistTabs(); }, id === 'settings');
+    const actions = document.createElement('div');
+    actions.className = 'tabman-modal-actions';
 
-        // Bar / dropdown
-        mkBtn(tc.inDropdown ? '⋯' : 'Bar', tc.inDropdown ? 'btn-primary' : 'btn-dark',
-            () => { tc.inDropdown = !tc.inDropdown; persistTabs(); });
+    const mk = (txt, cls, fn) => {
+        const b = document.createElement('button');
+        b.className = 'btn btn-wide ' + cls;
+        b.textContent = txt;
+        b.onclick = fn;
+        actions.appendChild(b);
+        return b;
+    };
 
-        // порядок (settings всегда последняя, не двигается)
-        const idx = order.indexOf(id);
-        mkBtn('↑', 'btn-dark', () => {
-            if (idx > 0) {
-                order.splice(idx, 1);
-                order.splice(idx - 1, 0, id);
-                persistTabs();
-            }
-        }, id === 'settings' || idx <= 0);
-        mkBtn('↓', 'btn-dark', () => {
-            if (idx >= 0 && idx < order.length - 1) {
-                order.splice(idx, 1);
-                order.splice(idx + 1, 0, id);
-                persistTabs();
-            }
-        }, id === 'settings' || idx < 0 || idx >= order.length - 1);
+    if (tabEditable(id)) {
+        mk('✏️ Edit layout', 'btn-warning', () => {
+            hideModal('element-editor-overlay');
+            startTabEdit(id);
+        });
+    }
 
-        // удаление — только страницы (game/stream/settings — кодовые)
-        mkBtn('✕', 'btn-danger', () => {
-            if (!confirm(`Delete tab "${tabTitle(id)}" со всем содержимым?`)) return;
+    mk(tc.visible === false ? '👁 Show tab' : '🙈 Hide tab', 'btn-dark', function () {
+        tc.visible = tc.visible === false ? true : false;
+        this.textContent = tc.visible === false ? '👁 Show tab' : '🙈 Hide tab';
+        persistTabs();
+    });
+
+    mk(tc.inDropdown ? '📌 Move to bar' : '⋯ Move to dropdown', 'btn-dark', function () {
+        tc.inDropdown = !tc.inDropdown;
+        this.textContent = tc.inDropdown ? '📌 Move to bar' : '⋯ Move to dropdown';
+        persistTabs();
+    });
+
+    if (isPageTab(id)) {
+        mk('🗑 Delete tab', 'btn-danger', async () => {
+            if (!await rcConfirm(`Delete tab "${tabTitle(id)}" со всем содержимым?`)) return;
+            hideModal('element-editor-overlay');
             delete uiCfg.pages[id];
-            uiCfg.tabOrder = order.filter(x => x !== id);
+            uiCfg.tabOrder = uiCfg.tabOrder.filter(x => x !== id);
             delete uiCfg.tabs[id];
             if (currentTab === id) switchToTab('settings');
             saveUiConfig();
             renderAllPages();
             renderTabs();
             renderTabsManager();
-        }, !isPageTab(id));
+        });
+    }
 
-        box.appendChild(row);
-    });
+    body.appendChild(actions);
+    showModal('element-editor-overlay');
 }
 
 function persistTabs() {

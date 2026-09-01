@@ -71,7 +71,6 @@ function defaultPages() {
         monitor: {
             title: 'Monitor',
             sections: [
-                { id: uid(), title: '', h: 330, elements: [pgEl('blk-monitor-cmm', 0, 0, 100, 100, {})] },
                 { id: uid(), title: '', h: 360, elements: [pgEl('blk-monitor-ddc', 0, 0, 100, 100, {})] }
             ]
         },
@@ -171,6 +170,16 @@ function ensurePages() {
     if (!uiCfg.tabOrder || !uiCfg.tabOrder.length) {
         uiCfg.tabOrder = DEFAULT_TAB_ORDER.slice();
     }
+    // миграция: ControlMyMonitor-блок снесён — вычищаем из сохранённых конфигов
+    Object.values(uiCfg.pages).forEach(page => {
+        (page.sections || []).forEach(sec => {
+            const before = sec.elements.length;
+            sec.elements = sec.elements.filter(e => e.type !== 'blk-monitor-cmm');
+            if (sec.elements.length !== before) saveUiConfigSoon();
+        });
+        // пустые секции, оставшиеся от cmm-блока, не трогаем — юзер сам решит
+    });
+
     // новые страницы, не попавшие в порядок (после апдейтов/добавлений)
     Object.keys(uiCfg.pages).forEach(id => {
         if (!uiCfg.tabOrder.includes(id)) uiCfg.tabOrder.splice(uiCfg.tabOrder.length, 0, id);
@@ -206,7 +215,9 @@ function pageElCtx(tabId) {
             if (!pageRefreshFns.has(tabId)) pageRefreshFns.set(tabId, []);
             pageRefreshFns.get(tabId).push(fn);
         },
-        sys: { fs: toggleFullscreen, settings: null }
+        // fs: null → элемент sys-fs использует sysFsToggle(el) со своими
+        // опциями (landscape-lock, скрытие шапки)
+        sys: { fs: null, settings: null }
     };
 }
 

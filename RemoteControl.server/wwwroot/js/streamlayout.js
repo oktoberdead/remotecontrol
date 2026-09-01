@@ -97,7 +97,7 @@ function enterStreamEdit() {
     EkSel.scope = wrap;
     EkSel.id = null;
 
-    document.getElementById('page-editor-overlay')?.classList.add('show');
+    document.getElementById('page-editor-overlay')?.classList.add('show', 'collapsed');
     const badge = $('#page-editor-title');
     if (badge) badge.textContent = '✏️ Stream · ' + streamOrient();
     // секции/добавление к стриму не применимы
@@ -107,12 +107,16 @@ function enterStreamEdit() {
     STREAM_BLOCKS.forEach(id => {
         const el = streamBlockEl(id);
         if (!el) return;
+        // классы редактора ВРЕМЕННЫЕ: .ge-wrap делает блок absolute, поэтому
+        // при выходе обязательно снимаем (иначе вкладка рассыпается)
         el.classList.add('ge-wrap', 'game-element', 'stream-block');
         el.dataset.geId = 'sb-' + id;
+        if (!el.querySelector('.ctl-handle')) {
+            ekInjectHandles(el, { edit: false, del: false }); // только перестановка/ресайз
+        }
 
         if (!el.dataset.ekBound) {
             el.dataset.ekBound = '1';
-            ekInjectHandles(el, { edit: false, del: false }); // только перестановка/ресайз
             ekBindInteraction(el, 'sb-' + id, {
                 isEditing: () => streamEditing,
                 getFrame: () => Object.assign({}, streamEditBlocks[id]),
@@ -145,6 +149,14 @@ function exitStreamEdit(save) {
 
     const wrap = document.querySelector('#tab-stream .stream-wrap');
     wrap?.classList.remove('edit-mode', 'stream-editing');
+
+    // снять редакторные классы и хэндлы с блоков — вне редактора они статичны
+    STREAM_BLOCKS.forEach(id => {
+        const el = streamBlockEl(id);
+        if (!el) return;
+        el.classList.remove('ge-wrap', 'game-element', 'stream-block', 'selected', 'show-actions', 'resizing');
+        el.querySelectorAll(':scope > .ctl-handle').forEach(h => h.remove());
+    });
     document.getElementById('page-editor-overlay')?.classList.remove('show');
     $('#btn-page-add-section').style.display = '';
     $('#btn-stream-reset').style.display = 'none';
@@ -153,10 +165,10 @@ function exitStreamEdit(save) {
 }
 
 // сброс текущей ориентации на дефолтный flex-лэйаут
-$('#btn-stream-reset')?.addEventListener('click', () => {
+$('#btn-stream-reset')?.addEventListener('click', async () => {
     if (!streamEditing) return;
     const o = streamEditOrient || streamOrient();
-    if (!confirm('Сбросить лэйаут Stream (' + o + ') на дефолтный?')) return;
+    if (!await rcConfirm('Сбросить лэйаут Stream (' + o + ') на дефолтный?')) return;
     streamLayoutCfg()[o] = { custom: false, blocks: {} };
     saveUiConfig();
     exitStreamEdit(false);

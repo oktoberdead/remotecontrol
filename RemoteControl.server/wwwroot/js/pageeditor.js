@@ -16,8 +16,7 @@ const PAGE_ADD_TYPES = [
     ['label', 'Label (text)'],
     ['sequence', 'Sequence (macro)'],
     ['sys-fs', 'System: Fullscreen'],
-    ['blk-monitor-cmm', 'Block: Monitor (CMM)'],
-    ['blk-monitor-ddc', 'Block: Monitor low-level'],
+    ['blk-monitor-ddc', 'Block: Monitor (DDC/CI)'],
     ['blk-mousepad', 'Block: Mouse touchpad'],
     ['blk-live-input', 'Block: Live keyboard'],
     ['blk-send-text', 'Block: Send text'],
@@ -42,7 +41,7 @@ function enterPageEdit(tabId) {
     EkSel.scope = document.getElementById('tab-' + tabId);
     EkSel.id = null;
 
-    document.getElementById('page-editor-overlay')?.classList.add('show');
+    document.getElementById('page-editor-overlay')?.classList.add('show', 'collapsed');
     const badge = $('#page-editor-title');
     if (badge) badge.textContent = '✏️ ' + (pageEditorPage.title || tabId);
     renderPage(tabId);
@@ -110,7 +109,7 @@ function pageEditorDecorate(content) {
             '<button class="btn btn-dark btn-sm" data-a="down">↓</button>' +
             '<button class="btn btn-danger btn-sm" data-a="del">✕</button>';
 
-        bar.addEventListener('click', e => {
+        bar.addEventListener('click', async e => {
             const a = e.target?.dataset?.a;
             if (!a) return;
             const idx = pageEditorPage.sections.indexOf(sec);
@@ -135,7 +134,7 @@ function pageEditorDecorate(content) {
                 pageEditorPage.sections.splice(idx + 1, 0, sec);
                 renderPage(pageEditTab);
             } else if (a === 'del') {
-                if (!confirm(`Delete section "${sec.title || '(без названия)'}" со всеми элементами?`)) return;
+                if (!await rcConfirm(`Delete section "${sec.title || '(без названия)'}" со всеми элементами?`)) return;
                 pageEditorPage.sections = pageEditorPage.sections.filter(s => s !== sec);
                 renderPage(pageEditTab);
             }
@@ -165,8 +164,8 @@ function pageEditorDecorate(content) {
             square: wrap.dataset.square === '1',
             minW: 3, minH: 3, maxW: 100, maxH: 100,
             onEdit: () => openPageElementEditor(el.id),
-            onDelete: () => {
-                if (!confirm('Delete this element?')) return;
+            onDelete: async () => {
+                if (!await rcConfirm('Delete this element?')) return;
                 const f = peFindEl(el.id);
                 if (f) {
                     f.sec.elements = f.sec.elements.filter(x => x.id !== el.id);

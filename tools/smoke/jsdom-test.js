@@ -119,21 +119,29 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
         const el = custom && custom.elements[0];
         return el && el.type === 'button' && el.kind === 'combo' && el.action === 'ctrl+k';
     })());
-    check('monitorBlocks', !!doc.querySelector('#tab-main') && !!doc.querySelector('#tab-monitor .blk-monitor-cmm') && !!doc.querySelector('#tab-monitor .blk-monitor-ddc'));
+    check('monitorDdcOnly', !doc.querySelector('#tab-monitor .blk-monitor-cmm') && !!doc.querySelector('#tab-monitor .blk-monitor-ddc'));
+    check('sliderStyled', (() => {
+        const r = doc.querySelector('#tab-main .ge-slider input[type=range]');
+        return r && r.classList.contains('volume-slider');
+    })());
     check('mousepadBlock', !!doc.querySelector('#tab-mouse .blk-mousepad .blk-pad'));
     check('keysBlocks', !!doc.querySelector('#tab-keys .blk-live-input input') && !!doc.querySelector('#tab-keys .blk-send-text'));
     check('mainActive', doc.getElementById('tab-main').classList.contains('active'));
 
-    // монитор-блоки живые (данные пришли)
+    // монитор-блок живой (данные пришли), nirsoft-пути нет
     w.switchToTab('monitor');
     await sleep(300);
-    check('monCmmLive', doc.getElementById('mon-brightness-val')?.textContent === '60%', doc.getElementById('mon-brightness-val')?.textContent);
     check('monDdcLive', doc.getElementById('mon2-brightness-val')?.textContent === '55%', doc.getElementById('mon2-brightness-val')?.textContent);
+    check('cmmPurgedFromCfg', !JSON.stringify(T().uiCfg.pages).includes('blk-monitor-cmm'));
 
     // ==================== PAGE EDITOR ====================
     w.enterPageEdit('main');
     await sleep(150);
     check('pageEditOn', T().pageEditTab === 'main' && doc.getElementById('page-editor-overlay').classList.contains('show'));
+    check('editorCollapsed', doc.getElementById('page-editor-overlay').classList.contains('collapsed'));
+    doc.querySelector('#page-editor-overlay .editor-fab').click();
+    check('fabExpands', !doc.getElementById('page-editor-overlay').classList.contains('collapsed'));
+    doc.querySelector('#page-editor-overlay .editor-fab').click();
     check('secToolbars', doc.querySelectorAll('#tab-main .sec-toolbar').length === T().pageEditorPage.sections.length);
 
     // структура wrap/body: хэндлы — сиблинги body → opacity элемента их не трогает
@@ -188,6 +196,26 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
     check('repeatShowsBoth', rowByLabel('Press duration ms')?.style.display !== 'none' && rowByLabel('Repeat interval ms')?.style.display !== 'none');
     w.hideModal('element-editor-overlay');
 
+    // sys-fs: опции фуллскрина на страницах
+    const fsEl = w.makePageElement({ type: 'sys-fs' });
+    T().pageEditorPage.sections[0].elements.push(fsEl);
+    w.renderPage('main');
+    await sleep(50);
+    w.openPageElementEditor(fsEl.id);
+    await sleep(30);
+    check('fsOptions', !!rowByLabel('Lock landscape') && !!rowByLabel('Hide top bars'));
+    check('fsDefaults', rowByLabel('Lock landscape').querySelector('select').value === 'true' &&
+        rowByLabel('Hide top bars').querySelector('select').value === 'true');
+    w.hideModal('element-editor-overlay');
+
+    // rcConfirm вместо window.confirm: удаление элемента через модалку
+    const delCount = T().pageEditorPage.sections[0].elements.length;
+    const p = w.rcConfirm('test?');
+    await sleep(30);
+    check('confirmModalShown', doc.getElementById('confirm-overlay').classList.contains('show'));
+    doc.getElementById('btn-confirm-ok').click();
+    check('confirmResolves', (await p) === true && !doc.getElementById('confirm-overlay').classList.contains('show'));
+
     // секция: rename/height через форму
     w.openSectionEditor(newSec);
     await sleep(30);
@@ -207,7 +235,9 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
     // ==================== TABS MANAGER ====================
     w.switchToTab('settings');
     await sleep(100);
-    check('tabsManagerRows', doc.querySelectorAll('#tabs-manager .tabman-row').length >= 7, doc.querySelectorAll('#tabs-manager .tabman-row').length);
+    const tmRows = doc.querySelectorAll('#tabs-manager .tabman-row');
+    check('tabsManagerRows', tmRows.length === 6, tmRows.length); // main/monitor/mouse/keys/stream/game, без settings
+    check('tabmanStructure', !!tmRows[0].querySelector('.tabman-grip') && !!tmRows[0].querySelector('.tabman-name'));
 
     doc.getElementById('tab-new-name').value = 'TestTab';
     doc.getElementById('btn-tab-add').click();
@@ -216,19 +246,34 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
     check('tabAdded', !!newTabId && !!doc.getElementById('tab-' + newTabId));
     check('tabOrderPlacement', T().uiCfg.tabOrder.indexOf(newTabId) < T().uiCfg.tabOrder.indexOf('stream'));
 
-    // редактируемость новой вкладки
-    w.enterPageEdit(newTabId);
-    await sleep(100);
-    check('newTabEditable', T().pageEditTab === newTabId);
-    w.exitPageEdit(false);
-
-    // удаление вкладки
-    w.switchToTab('settings');
+    // модалка вкладки: rename + hide + delete
+    w.openTabModal(newTabId);
+    await sleep(30);
+    const nameInp = [...doc.querySelectorAll('#element-editor-body .rc-form-row')].find(r => r.querySelector('span')?.textContent === 'Name')?.querySelector('input');
+    nameInp.value = 'Renamed';
+    nameInp.dispatchEvent(new w.Event('change'));
     await sleep(50);
-    const delRow = [...doc.querySelectorAll('#tabs-manager .tabman-row')].find(r => r.querySelector('.tabman-name')?.textContent === 'TestTab');
-    delRow.querySelector('.btn-danger').click();
+    check('tabRenamed', T().uiCfg.pages[newTabId].title === 'Renamed');
+
+    const hideBtn = [...doc.querySelectorAll('#element-editor-body .tabman-modal-actions .btn')].find(b => b.textContent.includes('Hide tab'));
+    hideBtn.click();
+    await sleep(100);
+    check('tabHidden', T().uiCfg.tabs[newTabId].visible === false);
+
+    const delBtn = [...doc.querySelectorAll('#element-editor-body .tabman-modal-actions .btn')].find(b => b.textContent.includes('Delete tab'));
+    delBtn.click();
+    await sleep(50);
+    doc.getElementById('btn-confirm-ok').click();
     await sleep(150);
     check('tabDeleted', !T().uiCfg.pages[newTabId] && !doc.getElementById('tab-' + newTabId));
+
+    // редактируемость обычной вкладки через enterPageEdit
+    w.enterPageEdit('keys');
+    await sleep(100);
+    check('newTabEditable', T().pageEditTab === 'keys');
+    w.exitPageEdit(false);
+    w.switchToTab('settings');
+    await sleep(50);
 
     // дропдаун: Edit-пункт для текущей вкладки
     w.switchToTab('main');
@@ -286,6 +331,15 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
     check('streamSaved', uiStore.streamLayout && uiStore.streamLayout.portrait.custom === true && uiStore.streamLayout.portrait.blocks.view.x === 50, uiStore.streamLayout);
     check('streamEditOff', T().streamEditing === false);
     check('streamAppliedAfterSave', swrap.classList.contains('custom-layout'));
+    // редакторные классы и хэндлы сняты — вкладка не рассыпается
+    check('streamClassesCleaned', doc.querySelectorAll('#tab-stream [data-sblock].ge-wrap').length === 0 &&
+        doc.querySelectorAll('#tab-stream [data-sblock] .ctl-handle').length === 0);
+    // повторный вход/выход без сохранения — тоже чисто
+    w.enterStreamEdit();
+    await sleep(80);
+    doc.getElementById('btn-page-cancel').click();
+    await sleep(80);
+    check('streamReEnterCleanExit', doc.querySelectorAll('#tab-stream [data-sblock].ge-wrap').length === 0 && T().streamEditing === false);
 
     report.jsErrors = errors;
     console.log(JSON.stringify(report, null, 1));

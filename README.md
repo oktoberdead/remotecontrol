@@ -9,9 +9,8 @@
   тап/свайп — выбор (⤡), двойной тап — ✎/✕ (хэндлы всегда 100% opacity)
 - Вход в редактор: Settings → Tabs → ✏️, либо дропдаун ⋯ → «Edit this tab»
 - **Main** (дефолтная страница): громкость, медиа, системные кнопки, WireGuard, **Shutdown PC** — всё атомами/блоками, полностью редактируется
-- **Monitor**: два независимых блока:
-  - старый путь — яркость/вкл/выкл через ControlMyMonitor (DDC/CI)
-  - **новый низкоуровневый** — напрямую WinAPI `dxva2.dll` (`/api/monitor2/*`), экспериментально; выпиливается независимо
+- **Monitor**: яркость/вкл/выкл напрямую через WinAPI `dxva2.dll` (DDC/CI, `/api/monitor2/*`);
+  ControlMyMonitor-путь снесён по итогам теста (dxva2 победил)
 - **Mouse / Stream**: тачпады (сенси и edge-зоны настраиваются), стрим с зумом (плавный, на клиенте), FPS, качество, fullscreen;
   блоки Stream переставляются/ресайзятся отдельно для портретной и альбомной ориентаций (конфиг per-orientation)
 - **Game**: полноценный конструктор:
@@ -26,6 +25,8 @@
   - Mouse/Stream: чувствительность, edge-зоны (вкл/размер/скорость)
   - Custom Elements: свои элементы на вкладках (button/touchpad/sequence/slider/toggle/input/**viewport**) с позиционированием drag
 - Конфиг UI хранится в `LocalApplicationData\RemoteControl\ui.json` (сырой JSON, схему держит клиент)
+- **Стрим**: один общий capture-loop на всех клиентов (сколько бы вьюпортов ни смотрело),
+  живёт только пока есть подписчики; зомби-клиенты без heartbeat отстреливаются за 20с
 
 ## Структура фронта
 `wwwroot/index.html` — разметка (статичны только Stream/Game/Settings, страницы рендерятся из конфига);
@@ -41,11 +42,9 @@
 touchpad, scrollbar, joystick, viewport (+gear), slider, toggle, input, label, sequence,
 sys-* (fullscreen/settings/gp) и blk-* (builtin-блоки).
 
-## Вкладка Monitor (DDC/CI, ControlMyMonitor)
-- Положи `ControlMyMonitor.exe` (NirSoft) в папку рядом с `RemoteControl.Server.exe`,
-  либо укажи полный путь в `appsettings.json` → `Monitor:CmmPath`
-- Какой монитор крутить: `Monitor:Name` (по умолчанию `Primary`; можно `\\.\DISPLAY1\Monitor0` или серийник)
-- Низкоуровневый блок (`dxva2`) в конфиге не нуждается — сам перечисляет мониторы
+## Вкладка Monitor (DDC/CI)
+Работает напрямую через `dxva2.dll` — в конфиге не нуждается, мониторы перечисляет сам.
+Настройки `Monitor:CmmPath` / `Monitor:Name` в appsettings больше не читаются.
 
 ## Собираем
 ```

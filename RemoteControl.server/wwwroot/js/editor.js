@@ -25,7 +25,8 @@ function enterEditMode(entryLayer) {
     EkSel.scope = document.getElementById('game-area');
     EkSel.id = null;
 
-    document.getElementById('layout-editor-overlay')?.classList.add('show');
+    const ov = document.getElementById('layout-editor-overlay');
+    ov?.classList.add('show', 'collapsed');
     renderEditorLayerBar();
     renderGame();
     activateGameViewports(); // вьюпорты живут и в редакторе (видно общую картину)
@@ -133,10 +134,10 @@ document.getElementById('game-area')?.addEventListener('pointerdown', e => {
     if (!e.target.closest('.ge-wrap')) EkSel.clear();
 });
 
-function editorDeleteElement(id) {
+async function editorDeleteElement(id) {
     const el = editorFindEl(id);
     if (!el) return;
-    if (!confirm('Delete this element?')) return;
+    if (!await rcConfirm('Delete this element?')) return;
 
     let removeIds = [id];
     // вьюпорт удаляется вместе со своей кнопкой настроек

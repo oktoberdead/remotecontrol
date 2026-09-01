@@ -48,7 +48,6 @@ builder.Services.AddSingleton<WireGuardService>();
 builder.Services.AddSingleton<MacroService>();
 builder.Services.AddSingleton<ScreenService>();
 builder.Services.AddSingleton<GamepadService>();
-builder.Services.AddSingleton<MonitorService>();
 builder.Services.AddSingleton<MonitorDdcService>();
 builder.Services.AddSingleton<UiService>();
 
@@ -442,58 +441,8 @@ app.MapGet("/api/wg/status", (WireGuardService wg) =>
 app.MapPost("/api/wg/toggle", (WireGuardService wg) =>
     Results.Json(new { Success = true, Status = wg.Toggle() }));
 
-// ==================== MONITOR (ControlMyMonitor / DDC/CI) ====================
-var monitorName = builder.Configuration.GetValue<string>("Monitor:Name") ?? "Primary";
-
-app.MapGet("/api/monitor/state", (MonitorService mon) =>
-{
-    var s = mon.GetState(monitorName);
-
-    return Results.Json(new
-    {
-        success = true,
-        available = s.Available,
-        monitor = s.MonitorName ?? monitorName,
-        brightness = s.Brightness,
-        brightnessMax = s.BrightnessMax,
-        powerMode = s.PowerMode,
-        // VESA VCP: 1 = on, 4 = standby, 5 = suspend
-        powerOn = s.PowerMode == 1,
-        powerKnown = s.PowerMode is 1 or 4 or 5
-    });
-});
-
-app.MapPost("/api/monitor/brightness", async (HttpRequest req, MonitorService mon) =>
-{
-    if (!mon.IsAvailable())
-        return Results.Json(new { success = false, error = "ControlMyMonitor.exe not found" });
-
-    var body = await req.ReadFromJsonAsync<MonitorBrightnessRequest>();
-    var (ok, value) = mon.SetBrightness(monitorName, body?.Level ?? 0);
-
-    return Results.Json(new { success = ok, brightness = ok ? value : (int?)null, requested = value });
-});
-
-app.MapPost("/api/monitor/power", async (HttpRequest req, MonitorService mon) =>
-{
-    if (!mon.IsAvailable())
-        return Results.Json(new { success = false, error = "ControlMyMonitor.exe not found" });
-
-    var body = await req.ReadFromJsonAsync<MonitorPowerRequest>();
-    var (ok, power) = mon.SetPower(monitorName, body?.Action?.ToLowerInvariant() ?? "");
-
-    return Results.Json(new
-    {
-        success = ok,
-        powerMode = power,
-        powerOn = power == 1,
-        powerKnown = power is 1 or 4 or 5
-    });
-});
-
-// ==================== MONITOR v2 (низкоуровневый DDC/CI, dxva2.dll) ====================
-// Экспериментальный параллельный путь. Старый /api/monitor/* не трогаем и
-// состояние с ним не разделяем — блок можно независимо удалить/откатить.
+// ==================== MONITOR (низкоуровневый DDC/CI, dxva2.dll) ====================
+// Победитель: прямой WinAPI. ControlMyMonitor-путь снесён по решению юзера.
 
 app.MapGet("/api/monitor2/state", (MonitorDdcService ddc, HttpRequest req) =>
 {
@@ -746,8 +695,6 @@ record ZoomRequest(string Action, float? Level = null, float? PanX = null, float
 record PanRequest(float X, float Y, bool Absolute = false);
 record FpsRequest(int Fps, int? IdleFps = null);
 record QualityRequest(int Percent = 100, int Jpeg = 0);
-record MonitorBrightnessRequest(int Level, string? Monitor = null);
-record MonitorPowerRequest(string Action, string? Monitor = null);
 record SystemShutdownRequest(int Delay = 30, bool Instant = false);
 record ConfigSaveRequest(string Content);
 record UiSaveRequest(JsonElement Config);

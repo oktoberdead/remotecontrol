@@ -429,9 +429,9 @@ function renderProfilesModal() {
         const del = document.createElement('button');
         del.className = 'btn btn-danger';
         del.textContent = '✕';
-        del.onclick = () => {
+        del.onclick = async () => {
             if (host.profiles.length <= 1) { toast('Last profile — can\'t delete'); return; }
-            if (!confirm(`Delete profile "${p.name}"?`)) return;
+            if (!await rcConfirm(`Delete profile "${p.name}"?`)) return;
             host.profiles = host.profiles.filter(x => x.id !== p.id);
             if (host.lastUsed === p.id) host.lastUsed = host.profiles[0].id;
             saveUiConfigSoon();

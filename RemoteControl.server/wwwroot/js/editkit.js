@@ -58,6 +58,7 @@ function ekBindInteraction(wrap, id, ctx) {
     let mode = null;
     let startX = 0, startY = 0, start = null;
     let moved = false, downTime = 0, lastTapAt = 0;
+    let pendingAction = null; // 'edit' | 'delete' — выполняется на pointerup
 
     const hitHandle = e => {
         for (const h of wrap.querySelectorAll('.ctl-handle')) {
@@ -80,8 +81,15 @@ function ekBindInteraction(wrap, id, ctx) {
         const wasSelected = EkSel.id === id;
         const h = wasSelected ? hitHandle(e) : null;
 
-        if (h === 'edit') { if (ctx.canEdit !== false) ctx.onEdit(); return; }
-        if (h === 'delete') { if (ctx.canDelete !== false) ctx.onDelete(); return; }
+        // действие хэндла — только на pointerup: иначе синтетический click
+        // после отпускания пальца попадает в открывшуюся модалку и закрывает её
+        if (h === 'edit' || h === 'delete') {
+            pendingAction = h;
+            moved = false;
+            startX = e.clientX;
+            startY = e.clientY;
+            return;
+        }
 
         startX = e.clientX;
         startY = e.clientY;
@@ -100,6 +108,10 @@ function ekBindInteraction(wrap, id, ctx) {
     });
 
     wrap.addEventListener('pointermove', e => {
+        if (pendingAction) {
+            if (Math.hypot(e.clientX - startX, e.clientY - startY) > 10) pendingAction = null; // увели палец — отмена
+            return;
+        }
         if (!mode || !ctx.isEditing()) return;
         e.preventDefault();
 
@@ -129,6 +141,13 @@ function ekBindInteraction(wrap, id, ctx) {
     });
 
     const end = () => {
+        if (pendingAction) {
+            const act = pendingAction;
+            pendingAction = null;
+            if (act === 'edit' && ctx.canEdit !== false) ctx.onEdit();
+            if (act === 'delete' && ctx.canDelete !== false) ctx.onDelete();
+            return;
+        }
         if (!mode) return;
         const wasResize = mode === 'resize';
         mode = null;
@@ -147,7 +166,28 @@ function ekBindInteraction(wrap, id, ctx) {
     };
 
     wrap.addEventListener('pointerup', end);
-    wrap.addEventListener('pointercancel', () => { mode = null; wrap.classList.remove('resizing'); });
+    wrap.addEventListener('pointercancel', () => { mode = null; pendingAction = null; wrap.classList.remove('resizing'); });
+}
+
+// ==================== CONFIRM-МОДАЛКА (никаких window.confirm) ====================
+
+function rcConfirm(message) {
+    return new Promise(resolve => {
+        const overlay = document.getElementById('confirm-overlay');
+        const txt = document.getElementById('confirm-text');
+        const ok = document.getElementById('btn-confirm-ok');
+        const cancel = document.getElementById('btn-confirm-cancel');
+        if (!overlay) { resolve(window.confirm(message)); return; } // страховка
+        txt.textContent = message;
+        overlay.classList.add('show');
+        const done = v => {
+            overlay.classList.remove('show');
+            ok.onclick = cancel.onclick = null;
+            resolve(v);
+        };
+        ok.onclick = () => done(true);
+        cancel.onclick = () => done(false);
+    });
 }
 
 function ekRound(v) { return Math.round(v * 10) / 10; }
@@ -389,6 +429,25 @@ function ekBuildElementForm(body, el, ctx) {
             R('Steps', ta);
             break;
         }
+        case 'sys-fs': {
+            if (!ctx.showLayer) { // на страницах — свой fullscreen с опциями
+                R('Lock landscape', ekSelect([['true', 'On'], ['false', 'Off']],
+                    String(el.landscape !== false), v => { el.landscape = v === 'true'; }));
+                R('Hide top bars', ekSelect([['true', 'On'], ['false', 'Off']],
+                    String(el.hideBars !== false), v => { el.hideBars = v === 'true'; }));
+                ekNote(body, 'В фуллскрине: альбомная ориентация и/или скрытие шапки и вкладок.');
+            }
+            break;
+        }
     }
-    // joystick / sys-* / vpgear / blk-* — только общие поля
+    // joystick / прочие sys-* / vpgear / blk-* — только общие поля
 }
+
+
+// ==================== FAB: инструменты редактора за кнопкой ====================
+// Панель не должна перекрывать страницу — раскрывается по 🛠, по умолчанию скрыта.
+document.querySelectorAll('.editor-fab').forEach(fab => {
+    fab.addEventListener('click', () => {
+        document.getElementById(fab.dataset.fab)?.classList.toggle('collapsed');
+    });
+});

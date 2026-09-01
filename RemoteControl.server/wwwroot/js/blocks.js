@@ -2,13 +2,12 @@
 // blocks.js — builtin-блоки: сложные механизмы как единые элементы страниц
 // (двигаются/ресайзятся/удаляются целиком, внутренности не редактируются).
 //
-// Типы: blk-monitor-cmm | blk-monitor-ddc | blk-mousepad | blk-live-input |
+// Типы: blk-monitor-ddc | blk-mousepad | blk-live-input |
 //       blk-send-text | blk-audio | blk-shutdown
 // ============================================================================
 
 const BLOCK_DEFS = {
-    'blk-monitor-cmm': { label: 'Monitor (ControlMyMonitor)', w: 96, h: 300 },
-    'blk-monitor-ddc': { label: 'Monitor low-level (dxva2)', w: 96, h: 330 },
+    'blk-monitor-ddc': { label: 'Monitor (DDC/CI)', w: 96, h: 330 },
     'blk-mousepad': { label: 'Mouse touchpad (gestures)', w: 96, h: 300 },
     'blk-live-input': { label: 'Live keyboard input', w: 96, h: 60 },
     'blk-send-text': { label: 'Send text (batch)', w: 96, h: 110 },
@@ -21,7 +20,6 @@ function buildBlockBody(el, ctx) {
     body.className = 'ge-block ' + el.type;
 
     switch (el.type) {
-        case 'blk-monitor-cmm': buildMonitorCmmBlock(body, ctx); break;
         case 'blk-monitor-ddc': buildMonitorDdcBlock(body, ctx); break;
         case 'blk-mousepad': buildMousepadBlock(el, body, ctx); break;
         case 'blk-live-input': buildLiveInputBlock(body, ctx); break;
@@ -40,120 +38,14 @@ function buildBlockBody(el, ctx) {
     return body;
 }
 
-// ==================== MONITOR: старый путь (ControlMyMonitor) ====================
-// Старый функционал сохранён как был; состояние с dxva2-блоком не разделяет.
-
-function buildMonitorCmmBlock(body, ctx) {
-    body.innerHTML = `
-        <h2>Monitor <span class="monitor-name" id="mon-name"></span></h2>
-        <div id="mon-unavailable" class="monitor-warning" style="display:none">
-            ControlMyMonitor.exe not found.<br>
-            Положи exe рядом с сервером или укажи путь в appsettings: <b>Monitor:CmmPath</b>
-        </div>
-        <div class="volume-row">
-            <span class="volume-value" id="mon-brightness-val">--</span>
-            <input type="range" min="0" max="100" value="50" step="1" class="volume-slider" id="mon-brightness-slider">
-        </div>
-        <div class="monitor-input-row">
-            <input type="number" class="keyboard-input" id="mon-brightness-input" min="0" max="100" step="1" placeholder="0-100" inputmode="numeric">
-            <button class="btn btn-primary" data-act="apply">Apply</button>
-        </div>
-        <div class="buttons">
-            <button class="btn btn-success btn-wide" data-act="on">On</button>
-            <button class="btn btn-danger btn-wide" data-act="off">Off</button>
-            <button class="btn btn-dark btn-wide" data-act="toggle">Switch</button>
-        </div>
-        <div class="monitor-status" id="mon-power">Power: --</div>`;
-
-    if (ctx.edit) return;
-
-    let monTimeout = null;
-    const slider = body.querySelector('#mon-brightness-slider');
-    const input = body.querySelector('#mon-brightness-input');
-
-    slider.oninput = function () {
-        const v = parseInt(this.value);
-        const max = parseInt(this.max) || 100;
-        body.querySelector('#mon-brightness-val').textContent = v + '%';
-        input.value = v;
-        this.style.setProperty('--val', Math.min(100, v / max * 100) + '%');
-        clearTimeout(monTimeout);
-        monTimeout = setTimeout(() => apiS('POST', '/api/monitor/brightness', { level: v }), 150);
-    };
-
-    input.addEventListener('keydown', e => { if (e.key === 'Enter') applyMonitorBrightness(); });
-
-    body.querySelectorAll('[data-act]').forEach(b => {
-        const act = b.dataset.act;
-        b.addEventListener('click', () => act === 'apply' ? applyMonitorBrightness() : monPower(act));
-    });
-
-    updateMonitor();
-    if (ctx.registerRefresh) ctx.registerRefresh({ id: 'mon-cmm' }, updateMonitor);
-}
-
-function setMonitorBrightnessUI(v, max) {
-    max = max || 100;
-    const s = $('#mon-brightness-slider');
-    if (!s) return;
-    s.max = max;
-    s.value = v;
-    s.style.setProperty('--val', Math.min(100, v / max * 100) + '%');
-    $('#mon-brightness-val').textContent = v + '%';
-}
-
-async function updateMonitor() {
-    if (!$('#mon-brightness-slider')) return;
-    const d = await apiS('GET', '/api/monitor/state');
-    if (!d) return;
-    const unav = $('#mon-unavailable');
-    if (unav) unav.style.display = d.available ? 'none' : 'block';
-    if (d.monitor && $('#mon-name')) $('#mon-name').textContent = d.monitor;
-
-    if (d.brightness != null) {
-        setMonitorBrightnessUI(d.brightness, d.brightnessMax);
-        const inp = $('#mon-brightness-input');
-        if (inp) inp.value = d.brightness;
-    }
-
-    const st = $('#mon-power');
-    if (!st) return;
-    if (d.powerKnown) {
-        st.textContent = d.powerOn ? 'Power: on' : 'Power: off (standby)';
-        st.classList.toggle('on', d.powerOn);
-    } else if (d.available) {
-        st.textContent = 'Power: --';
-        st.classList.remove('on');
-    }
-}
-
-async function applyMonitorBrightness() {
-    const inp = $('#mon-brightness-input');
-    if (!inp) return;
-    let v = parseInt(inp.value);
-    if (isNaN(v)) return;
-    const max = parseInt($('#mon-brightness-slider').max) || 100;
-    v = Math.max(0, Math.min(max, v));
-    inp.value = v;
-    setMonitorBrightnessUI(v, max);
-    const d = await apiS('POST', '/api/monitor/brightness', { level: v });
-    if (d && d.brightness != null) setMonitorBrightnessUI(d.brightness, max);
-}
-
-async function monPower(action) {
-    toast(action === 'on' ? 'Turning on...' : action === 'off' ? 'Turning off...' : 'Switching...');
-    await api('POST', '/api/monitor/power', { action }, true);
-    setTimeout(updateMonitor, 800);
-}
-
-// ==================== MONITOR: низкоуровневый (dxva2 DDC/CI) ====================
-// Экспериментальный параллельный путь; выпиливается независимо.
+// ==================== MONITOR (dxva2 DDC/CI) ====================
+// Победитель теста: прямой WinAPI. ControlMyMonitor-путь снесён.
 
 let mon2Index = 0;
 
 function buildMonitorDdcBlock(body, ctx) {
     body.innerHTML = `
-        <h2>Monitor · Low-level (dxva2 DDC/CI)</h2>
+        <h2>Monitor (DDC/CI)</h2>
         <div id="mon2-unavailable" class="monitor-warning" style="display:none">DDC/CI мониторы не найдены (dxva2)</div>
         <select class="device-select" id="mon2-select"></select>
         <div class="volume-row">
@@ -169,8 +61,7 @@ function buildMonitorDdcBlock(body, ctx) {
             <button class="btn btn-danger btn-wide" data-act="off">Off</button>
             <button class="btn btn-dark btn-wide" data-act="toggle">Switch</button>
         </div>
-        <div class="monitor-status" id="mon2-power">Power: --</div>
-        <div class="mon2-note">Экспериментально: прямой WinAPI, без ControlMyMonitor.</div>`;
+        <div class="monitor-status" id="mon2-power">Power: --</div>`;
 
     if (ctx.edit) return;
 
@@ -283,8 +174,7 @@ function buildMousepadBlock(el, body, ctx) {
 // ==================== KEYBOARD БЛОКИ ====================
 
 function buildLiveInputBlock(body, ctx) {
-    body.innerHTML = `<h2>Live Input (realtime)</h2>
-        <input type="text" class="keyboard-input" placeholder="Type here - sends instantly..." autocomplete="off">`;
+    body.innerHTML = `<input type="text" class="keyboard-input" placeholder="Type here - sends instantly..." autocomplete="off">`;
     if (ctx.edit) return;
 
     const inp = body.querySelector('input');
@@ -322,8 +212,7 @@ function buildLiveInputBlock(body, ctx) {
 }
 
 function buildSendTextBlock(body, ctx) {
-    body.innerHTML = `<h2>Send Text (batch)</h2>
-        <input type="text" class="keyboard-input" placeholder="Type, then press Send..." autocomplete="off">
+    body.innerHTML = `<input type="text" class="keyboard-input" placeholder="Type, then press Send..." autocomplete="off">
         <div class="buttons" style="margin-top:8px">
             <button class="btn btn-primary btn-wide" data-act="send">Send</button>
             <button class="btn btn-dark" data-act="clear">Clear</button>

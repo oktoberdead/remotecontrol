@@ -27,6 +27,7 @@ function startStream() {
     ws.onopen = () => {
         if (overlay) overlay.style.display = 'none';
         updateZoomLabel();
+        startHeartbeat();
     };
 
     // Только последний кадр: старые отбрасываются (отзывчивость, а не история)
@@ -73,9 +74,22 @@ function startDecodeFrame() {
 }
 
 function stopStream() {
+    stopHeartbeat();
     if (pendingFrame) { URL.revokeObjectURL(pendingFrame.url); pendingFrame = null; }
     if (decodingFrame) { URL.revokeObjectURL(decodingFrame.url); decodingFrame = null; }
     if (ws) { ws.close(); ws = null; }
+}
+
+// heartbeat: сервер считает клиента живым, только пока тот пингует (антизомби)
+let hbTimer = null;
+function startHeartbeat() {
+    stopHeartbeat();
+    hbTimer = setInterval(() => {
+        if (ws && ws.readyState === WebSocket.OPEN) { try { ws.send('hb'); } catch { } }
+    }, 5000);
+}
+function stopHeartbeat() {
+    if (hbTimer) { clearInterval(hbTimer); hbTimer = null; }
 }
 
 // Вкладка браузера скрыта -> рвём сессию, видимая -> подхватываем
@@ -341,6 +355,7 @@ const StreamHub = {
     ws: null,
     pending: null,
     decoding: null,
+    hbTimer: null,
 
     add(id, canvas) {
         this.subs.set(id, { canvas });
@@ -360,6 +375,13 @@ const StreamHub = {
         sock.binaryType = 'arraybuffer';
         this.ws = sock;
 
+        sock.onopen = () => {
+            if (this.hbTimer) clearInterval(this.hbTimer);
+            this.hbTimer = setInterval(() => {
+                if (this.ws && this.ws.readyState === WebSocket.OPEN) { try { this.ws.send('hb'); } catch { } }
+            }, 5000);
+        };
+
         sock.onmessage = e => {
             if (this.pending) URL.revokeObjectURL(this.pending.url);
             this.pending = { url: URL.createObjectURL(new Blob([e.data], { type: 'image/jpeg' })) };
@@ -374,6 +396,7 @@ const StreamHub = {
     },
 
     _stop() {
+        if (this.hbTimer) { clearInterval(this.hbTimer); this.hbTimer = null; }
         if (this.pending) { URL.revokeObjectURL(this.pending.url); this.pending = null; }
         if (this.decoding) { URL.revokeObjectURL(this.decoding.url); this.decoding = null; }
         if (this.ws) { try { this.ws.close(); } catch { } this.ws = null; }
@@ -414,4 +437,11 @@ document.addEventListener('visibilitychange', () => {
     } else if (StreamHub.subs.size > 0) {
         StreamHub._ensure();
     }
+});
+
+
+// Уход со страницы / сворачивание браузера — рвём все стрим-сессии сразу
+window.addEventListener('pagehide', () => {
+    stopStream();
+    StreamHub._stop();
 });

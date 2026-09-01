@@ -186,7 +186,8 @@
     </div>
 
     <!-- Layout Editor Overlay -->
-    <div class="layout-editor-overlay" id="layout-editor-overlay">
+    <div class="layout-editor-overlay collapsed" id="layout-editor-overlay">
+        <button class="editor-fab" data-fab="layout-editor-overlay" title="Инструменты редактора">🛠</button>
         <div class="layout-editor-topbar">
             <button class="btn btn-success" id="btn-add-element">+ Add</button>
             <button class="btn btn-dark" id="btn-editor-opacity" title="Реальная / полная непрозрачность">👁</button>
@@ -198,7 +199,8 @@
     </div>
 
     <!-- Page/Stream Editor Overlay -->
-    <div class="layout-editor-overlay" id="page-editor-overlay">
+    <div class="layout-editor-overlay collapsed" id="page-editor-overlay">
+        <button class="editor-fab" data-fab="page-editor-overlay" title="Инструменты редактора">🛠</button>
         <div class="layout-editor-topbar">
             <span class="editor-title" id="page-editor-title">✏️</span>
             <button class="btn btn-success" id="btn-page-add-section">+ Section</button>
@@ -208,6 +210,17 @@
             <button class="btn btn-dark" id="btn-page-cancel">✕</button>
         </div>
         <div class="layout-editor-hint">Тап/свайп — выбор · двойной тап — ✎/✕ · ⤡ — ресайз · панель раздела: +El / ✎ / ↑↓ / ✕</div>
+    </div>
+
+    <!-- Confirm Modal (замена window.confirm) -->
+    <div class="rc-modal-overlay" id="confirm-overlay" data-static>
+        <div class="rc-modal rc-confirm">
+            <div id="confirm-text" class="confirm-text">Sure?</div>
+            <div class="rc-modal-actions">
+                <button class="btn btn-danger" id="btn-confirm-ok">Yes</button>
+                <button class="btn btn-dark" id="btn-confirm-cancel">Cancel</button>
+            </div>
+        </div>
     </div>
 
     <div id="toast"></div>

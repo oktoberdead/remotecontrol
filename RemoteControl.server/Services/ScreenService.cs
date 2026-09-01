@@ -3,6 +3,7 @@ using System.Drawing.Imaging;
 using System.Net.WebSockets;
 using System.Runtime.InteropServices;
 using System.Diagnostics;
+using System.Threading.Channels;
 
 namespace RemoteControl.Server.Services;
 
@@ -246,18 +247,109 @@ public class ScreenService
     }
 
     // ========== STREAMING ==========
+    // Один общий capture-loop на ВСЕХ клиентов (раньше каждый WS-коннект гонял
+    // свой захват экрана — CPU умножался на число клиентов/вьюпортов).
+    // Loop живёт только пока есть подписчики; зомби-клиенты (свёрнутый браузер
+    // без close-handshake) отстреливаются вачдогом: нет heartbeat 20с — отписка.
+
+    private readonly object _subLock = new();
+    private readonly Dictionary<Guid, Channel<byte[]>> _subs = new();
+    private CancellationTokenSource? _captureCts;
+    private Task? _captureTask;
 
     public async Task StreamToWebSocket(WebSocket ws, CancellationToken ct)
     {
-        _isStreaming = true;
-        _logger.LogInformation("Stream started");
-        
-        var sw = System.Diagnostics.Stopwatch.StartNew(); 
-        
-        
+        var id = Guid.NewGuid();
+        // ёмкость 1 + DropOldest: медленный клиент получает только свежий кадр
+        var ch = Channel.CreateBounded<byte[]>(new BoundedChannelOptions(1)
+        {
+            FullMode = BoundedChannelFullMode.DropOldest
+        });
+
+        lock (_subLock)
+        {
+            _subs[id] = ch;
+            _isStreaming = true;
+            if (_captureTask == null)
+            {
+                _captureCts = new CancellationTokenSource();
+                var token = _captureCts.Token;
+                _captureTask = Task.Run(() => CaptureLoop(token), CancellationToken.None);
+            }
+        }
+        _logger.LogInformation("Stream client connected ({Count} total)", _subs.Count);
+
+        using var linked = CancellationTokenSource.CreateLinkedTokenSource(ct);
+
+        // receive-loop: ловим close-handshake и heartbeat; тишина 20с = зомби
+        var recvTask = Task.Run(async () =>
+        {
+            var buf = new byte[1024];
+            try
+            {
+                while (ws.State == WebSocketState.Open)
+                {
+                    using var rcts = CancellationTokenSource.CreateLinkedTokenSource(linked.Token);
+                    rcts.CancelAfter(TimeSpan.FromSeconds(20));
+                    var res = await ws.ReceiveAsync(new ArraySegment<byte>(buf), rcts.Token);
+                    if (res.MessageType == WebSocketMessageType.Close) break;
+                }
+            }
+            catch { }
+            linked.Cancel(); // клиент умер/закрылся — рвём send-loop
+        }, CancellationToken.None);
+
         try
         {
-            while (ws.State == WebSocketState.Open && !ct.IsCancellationRequested)
+            while (!linked.Token.IsCancellationRequested && ws.State == WebSocketState.Open)
+            {
+                var frame = await ch.Reader.ReadAsync(linked.Token);
+                // зависший send (мёртвый TCP) не должен держать подписку вечно
+                using var scts = CancellationTokenSource.CreateLinkedTokenSource(linked.Token);
+                scts.CancelAfter(TimeSpan.FromSeconds(10));
+                await ws.SendAsync(new ArraySegment<byte>(frame), WebSocketMessageType.Binary, true, scts.Token);
+            }
+        }
+        catch (OperationCanceledException) { }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Stream send error");
+        }
+        finally
+        {
+            linked.Cancel();
+            lock (_subLock)
+            {
+                _subs.Remove(id);
+                if (_subs.Count == 0)
+                {
+                    _captureCts?.Cancel();
+                    _captureCts = null;
+                    _captureTask = null;
+                    _isStreaming = false;
+                }
+            }
+            try { await recvTask; } catch { }
+            try
+            {
+                if (ws.State == WebSocketState.Open || ws.State == WebSocketState.CloseReceived)
+                {
+                    using var closeCts = new CancellationTokenSource(TimeSpan.FromSeconds(2));
+                    await ws.CloseAsync(WebSocketCloseStatus.NormalClosure, "bye", closeCts.Token);
+                }
+            }
+            catch { }
+            _logger.LogInformation("Stream client disconnected ({Count} left)", _subs.Count);
+        }
+    }
+
+    private async Task CaptureLoop(CancellationToken ct)
+    {
+        _logger.LogInformation("Capture loop started");
+        var sw = Stopwatch.StartNew();
+        try
+        {
+            while (!ct.IsCancellationRequested)
             {
                 sw.Restart();
 
@@ -265,12 +357,13 @@ public class ScreenService
                 int fps = idle > IDLE_TIMEOUT_SECONDS ? _idleFps : _targetFps;
                 var frameDelayMs = 1000.0 / fps;
 
-                var startTime = DateTime.UtcNow;
-
                 var frame = CaptureScreen();
                 if (frame.Length > 0)
                 {
-                    await ws.SendAsync(new ArraySegment<byte>(frame), WebSocketMessageType.Binary, true, ct);
+                    lock (_subLock)
+                    {
+                        foreach (var sub in _subs.Values) sub.Writer.TryWrite(frame);
+                    }
                 }
 
                 var elapsed = sw.Elapsed.TotalMilliseconds;
@@ -281,12 +374,11 @@ public class ScreenService
         catch (OperationCanceledException) { }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Stream error");
+            _logger.LogWarning(ex, "Capture loop error");
         }
         finally
         {
-            _isStreaming = false;
-            _logger.LogInformation("Stream ended");
+            _logger.LogInformation("Capture loop stopped");
         }
     }
 

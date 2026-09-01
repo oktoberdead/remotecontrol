@@ -101,7 +101,7 @@ function buildElementBody(el, ctx) {
             body = document.createElement('button');
             body.className = 'btn btn-dark';
             body.textContent = el.label || 'Fullscreen';
-            if (!ctx.edit) body.addEventListener('click', () => (ctx.sys && ctx.sys.fs ? ctx.sys.fs() : toggleFullscreen()));
+            if (!ctx.edit) body.addEventListener('click', () => (ctx.sys && ctx.sys.fs ? ctx.sys.fs() : sysFsToggle(el)));
             break;
         }
         case 'sys-settings': {
@@ -121,8 +121,9 @@ function buildElementBody(el, ctx) {
         }
         case 'slider': {
             body = document.createElement('div');
-            body.className = 'ge-slider widget-slider';
-            body.innerHTML = `<span class="widget-val">${el.label || el.binding}</span><input type="range" min="${el.min ?? 0}" max="${el.max ?? 100}" step="1">`;
+            body.className = 'ge-slider';
+            body.innerHTML = `<span class="volume-value widget-val">--</span>` +
+                `<input type="range" class="volume-slider" min="${el.min ?? 0}" max="${el.max ?? 100}" step="1">`;
             if (!ctx.edit) initSliderBehavior(el, body, ctx);
             break;
         }
@@ -480,31 +481,37 @@ function initScrollbarBehavior(el, node) {
 
 async function elSliderApply(binding, v) {
     if (binding === 'volume') await apiS('POST', '/api/volume/set', { level: v });
-    else if (binding === 'brightness') await apiS('POST', '/api/monitor/brightness', { level: v });
+    else if (binding === 'brightness') await apiS('POST', '/api/monitor2/brightness', { level: v, index: typeof mon2Index !== 'undefined' ? mon2Index : 0 });
     else if (binding === 'zoom') await apiS('POST', '/api/screen/zoom', { action: 'set', level: v });
     else if (binding === 'fps') await apiS('POST', '/api/screen/fps', { fps: v });
 }
 
 async function elSliderFetch(binding) {
     if (binding === 'volume') { const d = await apiS('GET', '/api/volume'); return d ? d.volume : null; }
-    if (binding === 'brightness') { const d = await apiS('GET', '/api/monitor/state'); return d ? d.brightness : null; }
+    if (binding === 'brightness') { const d = await apiS('GET', '/api/monitor2/state'); return d ? d.brightness : null; }
     return null;
 }
 
 function initSliderBehavior(el, body, ctx) {
     const range = body.querySelector('input[type=range]');
     const val = body.querySelector('.widget-val');
+    const min = el.min ?? 0, max = el.max ?? 100;
+    const paint = v => {
+        val.textContent = (el.label ? el.label + ' ' : '') + v + (el.binding === 'volume' || el.binding === 'brightness' ? '%' : '');
+        range.style.setProperty('--val', Math.min(100, (v - min) / Math.max(1, max - min) * 100) + '%');
+    };
     let t = null;
     range.oninput = () => {
-        val.textContent = el.label ? `${el.label}: ${range.value}` : range.value;
+        const v = parseInt(range.value);
+        paint(v);
         clearTimeout(t);
-        t = setTimeout(() => elSliderApply(el.binding || 'volume', parseInt(range.value)), 150);
+        t = setTimeout(() => elSliderApply(el.binding || 'volume', v), 150);
     };
     const refresh = async () => {
         const v = await elSliderFetch(el.binding || 'volume');
         if (v != null && body.isConnected) {
             range.value = v;
-            val.textContent = el.label ? `${el.label}: ${v}` : v;
+            paint(v);
         }
     };
     refresh();
@@ -514,7 +521,7 @@ function initSliderBehavior(el, body, ctx) {
 function initToggleBehavior(el, body, ctx) {
     const refresh = async () => {
         let on = false;
-        if (el.binding === 'power') { const d = await apiS('GET', '/api/monitor/state'); on = d ? d.powerOn === true : false; }
+        if (el.binding === 'power') { const d = await apiS('GET', '/api/monitor2/state'); on = d ? d.powerOn === true : false; }
         else if (el.binding === 'wg') { const d = await apiS('GET', '/api/wg/status'); on = d ? d.status === 'Running' : false; }
         if (body.isConnected) {
             body.classList.toggle('btn-on', on);
@@ -523,9 +530,9 @@ function initToggleBehavior(el, body, ctx) {
     };
     refresh();
     body.addEventListener('click', async () => {
-        if (el.binding === 'power') await apiS('POST', '/api/monitor/power', { action: 'toggle' });
+        if (el.binding === 'power') await apiS('POST', '/api/monitor2/power', { action: 'toggle' });
         else if (el.binding === 'wg') await apiS('POST', '/api/wg/toggle');
-        setTimeout(refresh, 800);
+        setTimeout(refresh, 1200);
     });
     if (ctx.registerRefresh) ctx.registerRefresh(el, refresh);
 }
@@ -552,3 +559,29 @@ function runSequenceSteps(steps) {
         t += s.delay || 50;
     });
 }
+
+
+// ==================== FULLSCREEN (страничная кнопка sys-fs) ====================
+// el.landscape (default true) — лочить альбомную ориентацию
+// el.hideBars  (default true) — прятать шапку и вкладки (максимум места вьюпорту)
+
+async function sysFsToggle(el) {
+    const entering = !document.fullscreenElement;
+    if (entering) {
+        try { await document.documentElement.requestFullscreen(); } catch { }
+        if (el.landscape !== false) {
+            try { await screen.orientation.lock('landscape'); } catch { }
+        }
+        if (el.hideBars !== false) document.body.classList.add('bars-hidden');
+    } else {
+        try { await document.exitFullscreen(); } catch { }
+    }
+}
+
+// системный выход из фуллскрина (жест/Esc) — вернуть панели
+document.addEventListener('fullscreenchange', () => {
+    if (!document.fullscreenElement) {
+        document.body.classList.remove('bars-hidden');
+        try { screen.orientation.unlock(); } catch { }
+    }
+});

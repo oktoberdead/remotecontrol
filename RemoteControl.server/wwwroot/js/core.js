@@ -584,7 +584,7 @@ function openShutdownPrompt() { $('#shutdown-modal').classList.add('show'); }
 function closeShutdownPrompt() { $('#shutdown-modal').classList.remove('show'); }
 
 async function scheduleShutdown(delay) {
-    if (delay === 0 && !confirm('Мгновенно? Без шанса спастись. (режим троллинга)')) return;
+    if (delay === 0 && !await rcConfirm('Мгновенно? Без шанса спастись. (режим троллинга)')) return;
     closeShutdownPrompt();
     const d = await apiS('POST', '/api/system/shutdown', delay === 0 ? { instant: true } : { delay });
     if (d && d.success) {
@@ -638,7 +638,7 @@ async function saveConfigText() {
 }
 
 async function restartServer() {
-    if (!confirm('Restart the server? (a few seconds of downtime)')) return;
+    if (!await rcConfirm('Restart the server? (a few seconds of downtime)')) return;
     toast('Restarting...');
     await apiS('POST', '/api/system/restart');
     let tries = 0;
@@ -714,8 +714,9 @@ function saveUiConfigSoon() {
 function showModal(id) { document.getElementById(id)?.classList.add('show'); }
 function hideModal(id) { document.getElementById(id)?.classList.remove('show'); }
 
-// Закрытие модалки тапом по фону
-document.addEventListener('click', e => {
+// Закрытие модалки тапом по фону (pointerdown, а не click: синтетический
+// click после отпускания пальца не должен ронять только что открытую модалку)
+document.addEventListener('pointerdown', e => {
     if (e.target.classList && e.target.classList.contains('rc-modal-overlay') && e.target.dataset.static === undefined) {
         e.target.classList.remove('show');
     }
