@@ -49,6 +49,7 @@ builder.Services.AddSingleton<MacroService>();
 builder.Services.AddSingleton<ScreenService>();
 builder.Services.AddSingleton<GamepadService>();
 builder.Services.AddSingleton<MonitorService>();
+builder.Services.AddSingleton<UiService>();
 
 
 
@@ -203,6 +204,61 @@ app.MapPost("/api/system/shutdown/cancel", () =>
     }
     catch { /* ничего не было запланировано */ }
 
+    return Results.Json(new { success = true });
+});
+
+// ==================== SYSTEM: CONFIG & RESTART ====================
+app.MapGet("/api/system/config", () =>
+{
+    var path = Path.Combine(AppContext.BaseDirectory, "appsettings.json");
+    if (!File.Exists(path))
+        return Results.Json(new { success = false, error = "appsettings.json not found" });
+    return Results.Json(new { success = true, content = File.ReadAllText(path) });
+});
+
+app.MapPost("/api/system/config", async (HttpRequest req) =>
+{
+    var body = await req.ReadFromJsonAsync<ConfigSaveRequest>();
+    if (string.IsNullOrWhiteSpace(body?.Content))
+        return Results.Json(new { success = false, error = "empty content" });
+
+    try
+    {
+        using var doc = JsonDocument.Parse(body.Content);
+    }
+    catch (JsonException ex)
+    {
+        return Results.Json(new { success = false, error = "Invalid JSON: " + ex.Message });
+    }
+
+    await File.WriteAllTextAsync(Path.Combine(AppContext.BaseDirectory, "appsettings.json"), body.Content);
+    Console.WriteLine("appsettings.json updated");
+    return Results.Json(new { success = true });
+});
+
+app.MapPost("/api/system/restart", () =>
+{
+    try
+    {
+        var exe = Environment.ProcessPath;
+        if (exe == null)
+            return Results.Json(new { success = false, error = "ProcessPath unavailable" });
+
+        var args = string.Join(" ", Environment.GetCommandLineArgs().Skip(1));
+        using var p = Process.Start(new ProcessStartInfo(exe, args + " --restart-delay 3000")
+        {
+            UseShellExecute = false,
+            CreateNoWindow = true
+        });
+        Console.WriteLine("Server restart initiated");
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"Restart failed: {ex.Message}");
+        return Results.Json(new { success = false, error = ex.Message });
+    }
+
+    _ = Task.Delay(500).ContinueWith(_ => Environment.Exit(0));
     return Results.Json(new { success = true });
 });
 
@@ -589,8 +645,35 @@ app.MapPost("/api/game/layout", async (HttpRequest req) =>
 });
 
 
+// ==================== UI CONFIG ====================
+app.MapGet("/api/ui", (UiService ui) =>
+{
+    var cfg = ui.Load();
+    // JsonElement сохраняется как есть (camelCase из UiService.JsonOpts)
+    var json = JsonSerializer.SerializeToElement(cfg, UiService.JsonOpts);
+    return Results.Json(new { success = true, config = json });
+});
+
+app.MapPost("/api/ui", async (HttpRequest req, UiService ui) =>
+{
+    var body = await req.ReadFromJsonAsync<UiSaveRequest>();
+    if (body?.Config == null)
+        return Results.Json(new { success = false, error = "no config" });
+
+    var ok = ui.Save(body.Config);
+    return Results.Json(new { success = ok });
+});
+
 // ==================== FALLBACK ====================
 app.MapFallbackToFile("index.html");
+
+// --restart-delay: новая инстанция ждёт, пока старая отпустит порт
+var restartDelayIdx = Array.FindIndex(args, a => a.Equals("--restart-delay", StringComparison.OrdinalIgnoreCase));
+if (restartDelayIdx >= 0 && restartDelayIdx + 1 < args.Length && int.TryParse(args[restartDelayIdx + 1], out var restartDelayMs))
+{
+    Console.WriteLine($"Waiting {restartDelayMs}ms for previous instance to exit...");
+    await Task.Delay(restartDelayMs);
+}
 
 var port = builder.Configuration.GetValue<int?>("Port") ?? 8086;
 app.Run($"http://0.0.0.0:{port}");
@@ -609,4 +692,6 @@ record QualityRequest(int Percent = 100, int Jpeg = 0);
 record MonitorBrightnessRequest(int Level, string? Monitor = null);
 record MonitorPowerRequest(string Action, string? Monitor = null);
 record SystemShutdownRequest(int Delay = 30, bool Instant = false);
+record ConfigSaveRequest(string Content);
+record UiSaveRequest(UiConfig Config);
 file record GamepadMsg(string t, float x = 0, float y = 0);
